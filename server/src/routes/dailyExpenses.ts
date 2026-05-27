@@ -196,15 +196,27 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    const expenseDate = date || new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+
     const [expense] = await db('daily_expenses')
       .insert({
         user_id: req.user!.id,
         amount,
         description,
         category,
-        date: date || new Date().toISOString().split('T')[0],
+        date: expenseDate,
       })
       .returning('*');
+
+    // If adding to a past day, invalidate balances from that day and recalculate
+    if (expenseDate < today) {
+      await db('daily_balances')
+        .where({ user_id: req.user!.id })
+        .where('date', '>=', expenseDate)
+        .del();
+      await autoCloseDays(req.user!.id);
+    }
 
     res.status(201).json(expense);
   } catch (error) {
@@ -213,17 +225,101 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Delete daily expense
-router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+// Get a specific day's details (expenses + balance)
+router.get('/day/:date', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const deleted = await db('daily_expenses')
-      .where({ id: req.params.id, user_id: req.user!.id })
-      .del();
+    await autoCloseDays(req.user!.id);
 
-    if (!deleted) {
+    const { date } = req.params;
+
+    const expenses = await db('daily_expenses')
+      .where({ user_id: req.user!.id, date })
+      .orderBy('created_at', 'desc');
+
+    const balance = await db('daily_balances')
+      .where({ user_id: req.user!.id, date })
+      .first();
+
+    const totalSpent = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    const dailyBudget = await getDailyBudget(req.user!.id);
+
+    res.json({
+      date,
+      expenses,
+      balance: balance || null,
+      total_spent: totalSpent,
+      daily_budget: dailyBudget,
+    });
+  } catch (error) {
+    console.error('Get day details error:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Update a daily expense
+router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { amount, description, category, date } = req.body;
+
+    // Get the existing expense to know which date may need recalculation
+    const existing = await db('daily_expenses')
+      .where({ id: req.params.id, user_id: req.user!.id })
+      .first();
+
+    if (!existing) {
       res.status(404).json({ error: 'Gasto no encontrado' });
       return;
     }
+
+    const [updated] = await db('daily_expenses')
+      .where({ id: req.params.id, user_id: req.user!.id })
+      .update({
+        ...(amount !== undefined && { amount }),
+        ...(description !== undefined && { description }),
+        ...(category !== undefined && { category }),
+        ...(date !== undefined && { date }),
+        updated_at: new Date(),
+      })
+      .returning('*');
+
+    // Invalidate balances from the earliest affected date so they get recalculated
+    const earliestDate = date && date < existing.date ? date : existing.date;
+    await db('daily_balances')
+      .where({ user_id: req.user!.id })
+      .where('date', '>=', earliestDate)
+      .del();
+
+    // Recalculate
+    await autoCloseDays(req.user!.id);
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Update daily expense error:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Delete daily expense
+router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const existing = await db('daily_expenses')
+      .where({ id: req.params.id, user_id: req.user!.id })
+      .first();
+
+    if (!existing) {
+      res.status(404).json({ error: 'Gasto no encontrado' });
+      return;
+    }
+
+    await db('daily_expenses').where({ id: req.params.id }).del();
+
+    // Invalidate balances from the affected date onwards
+    await db('daily_balances')
+      .where({ user_id: req.user!.id })
+      .where('date', '>=', existing.date)
+      .del();
+
+    await autoCloseDays(req.user!.id);
 
     res.json({ message: 'Gasto eliminado' });
   } catch (error) {

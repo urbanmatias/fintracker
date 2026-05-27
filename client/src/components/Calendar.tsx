@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 interface CalendarDay {
   date: string;
   budget: number;
@@ -15,18 +13,14 @@ interface CalendarProps {
   days: CalendarDay[];
   todaySpent?: number;
   todayDate?: string;
+  onDayClick?: (date: string) => void;
 }
 
-export default function Calendar({ year, month, days, todaySpent, todayDate }: CalendarProps) {
-  const [hoveredDay, setHoveredDay] = useState<CalendarDay | null>(null);
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
-
+export default function Calendar({ year, month, days, todaySpent, todayDate, onDayClick }: CalendarProps) {
   const daysMap = new Map(days.map((d) => [d.date.split('T')[0], d]));
 
-  // Calculate days in month and first day of week
   const daysInMonth = new Date(year, month, 0).getDate();
-  const firstDayOfMonth = new Date(year, month - 1, 1).getDay(); // 0 = Sun
-  // Adjust to Monday start (0 = Mon, ..., 6 = Sun)
+  const firstDayOfMonth = new Date(year, month - 1, 1).getDay();
   const offset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
   const cells: (number | null)[] = [];
@@ -36,43 +30,28 @@ export default function Calendar({ year, month, days, todaySpent, todayDate }: C
   const formatDate = (day: number) =>
     `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-  const getDayInfo = (day: number) => {
-    const dateStr = formatDate(day);
-    return daysMap.get(dateStr);
-  };
-
   const getDayClass = (day: number) => {
     const dateStr = formatDate(day);
     const info = daysMap.get(dateStr);
     const isToday = todayDate === dateStr;
 
     if (isToday) {
-      return 'bg-secondary/20 border-secondary text-secondary';
+      return 'bg-secondary/15 border-secondary/60 text-secondary hover:bg-secondary/20';
     }
     if (!info) {
-      return 'bg-surface border-border/50 text-text-muted';
+      return 'bg-surface border-border text-text-muted/60 hover:bg-surface-light hover:text-text-muted';
     }
     if (info.status === 'positive') {
-      return 'bg-primary/15 border-primary/30 text-primary';
+      return 'bg-primary/15 border-primary/30 text-primary hover:bg-primary/20';
     }
     if (info.status === 'negative') {
-      return 'bg-danger/15 border-danger/30 text-danger';
+      return 'bg-danger/15 border-danger/30 text-danger hover:bg-danger/20';
     }
-    return 'bg-border/30 border-border text-text-muted';
+    return 'bg-border/40 border-border text-text-muted hover:bg-border/60';
   };
 
-  const handleMouseEnter = (day: number, e: React.MouseEvent) => {
-    const info = getDayInfo(day);
-    if (info) {
-      setHoveredDay(info);
-      const rect = (e.target as HTMLElement).getBoundingClientRect();
-      setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top - 10 });
-    }
-  };
+  const dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
-  const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-
-  // Compute month summary
   const summary = {
     positive: days.filter((d) => d.status === 'positive').length,
     negative: days.filter((d) => d.status === 'negative').length,
@@ -80,88 +59,57 @@ export default function Calendar({ year, month, days, todaySpent, todayDate }: C
   };
 
   return (
-    <div className="space-y-4 relative">
+    <div className="space-y-3">
       {/* Day labels */}
-      <div className="grid grid-cols-7 gap-2 text-xs text-text-muted text-center">
-        {dayLabels.map((d) => (
-          <div key={d}>{d}</div>
+      <div className="grid grid-cols-7 gap-1.5 text-[11px] text-text-muted text-center font-medium">
+        {dayLabels.map((d, i) => (
+          <div key={i}>{d}</div>
         ))}
       </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-2">
+      {/* Calendar grid - compact */}
+      <div className="grid grid-cols-7 gap-1.5">
         {cells.map((cell, i) => {
           if (cell === null) {
-            return <div key={`empty-${i}`} className="aspect-square"></div>;
+            return <div key={`empty-${i}`} className="h-9"></div>;
           }
-          const info = getDayInfo(cell);
+          const dateStr = formatDate(cell);
+          const isClickable = !!onDayClick;
           return (
-            <div
+            <button
               key={cell}
-              onMouseEnter={(e) => handleMouseEnter(cell, e)}
-              onMouseLeave={() => setHoveredDay(null)}
-              className={`aspect-square flex flex-col items-center justify-center rounded-lg border text-sm transition-all ${getDayClass(cell)} ${info ? 'cursor-pointer hover:scale-105' : ''}`}
+              type="button"
+              disabled={!isClickable}
+              onClick={() => onDayClick?.(dateStr)}
+              className={`h-9 flex items-center justify-center rounded-md border text-xs font-medium transition-all ${getDayClass(cell)} ${isClickable ? 'cursor-pointer' : 'cursor-default'}`}
             >
-              <span className="font-semibold">{cell}</span>
-              {info && (
-                <span className="text-[10px] mt-0.5 opacity-70">
-                  {info.status === 'positive' ? '+' : info.status === 'negative' ? '−' : '·'}
-                  ${Math.abs(info.surplus).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-                </span>
-              )}
-            </div>
+              {cell}
+            </button>
           );
         })}
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-4 text-xs text-text-muted pt-2 border-t border-border">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-primary/40 border border-primary/40"></div>
+      {/* Legend - compact */}
+      <div className="flex flex-wrap gap-3 text-[11px] text-text-muted pt-1">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-sm bg-primary/40 border border-primary/40"></div>
           <span>Positivo ({summary.positive})</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-danger/40 border border-danger/40"></div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-sm bg-danger/40 border border-danger/40"></div>
           <span>Negativo ({summary.negative})</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-border border border-border"></div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-sm bg-border border border-border"></div>
           <span>Neutro ({summary.neutral})</span>
         </div>
         {todayDate && todaySpent !== undefined && (
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-secondary/40 border border-secondary"></div>
-            <span>Hoy (${todaySpent.toLocaleString('es-AR', { maximumFractionDigits: 0 })} gastado)</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm bg-secondary/40 border border-secondary"></div>
+            <span>Hoy</span>
           </div>
         )}
       </div>
-
-      {/* Tooltip */}
-      {hoveredDay && (
-        <div
-          className="fixed z-50 pointer-events-none bg-surface border border-border rounded-xl p-3 shadow-2xl text-xs"
-          style={{
-            left: `${tooltipPos.x}px`,
-            top: `${tooltipPos.y}px`,
-            transform: 'translate(-50%, -100%)',
-          }}
-        >
-          <div className="font-semibold text-sm mb-1">
-            {new Date(hoveredDay.date).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </div>
-          <div className="space-y-0.5 text-text-muted">
-            <div>Presupuesto: <span className="text-text">${hoveredDay.budget.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span></div>
-            <div>Gastado: <span className="text-danger">${hoveredDay.spent.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span></div>
-            <div>
-              {hoveredDay.surplus >= 0 ? 'Sobró: ' : 'Pasaste: '}
-              <span className={hoveredDay.surplus >= 0 ? 'text-primary' : 'text-danger'}>
-                ${Math.abs(hoveredDay.surplus).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-            <div>Excedente: <span className="text-warning">${hoveredDay.excedent_balance.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span></div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

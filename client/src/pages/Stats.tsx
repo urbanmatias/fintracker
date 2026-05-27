@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import api from '../api/client';
 import Calendar from '../components/Calendar';
+import DayDetailModal from '../components/DayDetailModal';
 
 interface CalendarDay {
   date: string;
@@ -43,8 +44,9 @@ export default function Stats() {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  useEffect(() => {
+  const reload = () => {
     setLoading(true);
     Promise.all([
       api.get(`/stats/monthly/${selectedYear}/${selectedMonth}`),
@@ -56,6 +58,11 @@ export default function Stats() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth, selectedYear]);
 
   if (loading) return <div className="animate-pulse text-text-muted">Cargando estadísticas...</div>;
@@ -132,7 +139,9 @@ export default function Stats() {
             days={calendar.days}
             todaySpent={calendar.today.spent}
             todayDate={calendar.today.date}
+            onDayClick={(date) => setSelectedDay(date)}
           />
+          <p className="text-[11px] text-text-muted mt-3">Click en cualquier día para ver detalles o editar gastos</p>
         </div>
       )}
 
@@ -226,6 +235,15 @@ export default function Stats() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Day detail modal */}
+      {selectedDay && (
+        <DayDetailModal
+          date={selectedDay}
+          onClose={() => setSelectedDay(null)}
+          onChange={reload}
+        />
       )}
     </div>
   );
