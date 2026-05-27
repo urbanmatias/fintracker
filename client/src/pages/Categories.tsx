@@ -63,11 +63,11 @@ export default function Categories() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Categorías</h1>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+        <h1 className="text-xl md:text-2xl font-bold hidden md:block">Categorías</h1>
         <button
           onClick={() => { setShowForm(!showForm); setEditingId(null); }}
-          className="px-4 py-2 bg-primary hover:bg-primary-dark text-background rounded-[10px] font-semibold text-sm transition-colors"
+          className="px-4 py-2 bg-primary hover:bg-primary-dark text-background rounded-[10px] font-semibold text-sm transition-colors self-start"
         >
           {showForm ? 'Cancelar' : '+ Nueva categoría'}
         </button>

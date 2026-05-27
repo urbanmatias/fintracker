@@ -65,25 +65,25 @@ export default function Admin() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Panel de Administración</h1>
+      <h1 className="text-xl md:text-2xl font-bold hidden md:block">Panel de Administración</h1>
 
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-surface rounded-[14px] p-5 border border-border">
-            <p className="text-text-muted text-xs">Usuarios totales</p>
-            <p className="text-2xl font-bold mt-1">{stats.total_users}</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-5 border border-border">
+            <p className="text-text-muted text-[11px] md:text-xs">Usuarios</p>
+            <p className="text-xl md:text-2xl font-bold mt-1">{stats.total_users}</p>
           </div>
-          <div className="bg-surface rounded-[14px] p-5 border border-border">
-            <p className="text-text-muted text-xs">Nuevos este mes</p>
-            <p className="text-2xl font-bold mt-1 text-primary">{stats.new_users_this_month}</p>
+          <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-5 border border-border">
+            <p className="text-text-muted text-[11px] md:text-xs">Nuevos este mes</p>
+            <p className="text-xl md:text-2xl font-bold mt-1 text-primary">{stats.new_users_this_month}</p>
           </div>
-          <div className="bg-surface rounded-[14px] p-5 border border-border">
-            <p className="text-text-muted text-xs">Gastos registrados</p>
-            <p className="text-2xl font-bold mt-1">{stats.total_expenses_recorded}</p>
+          <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-5 border border-border">
+            <p className="text-text-muted text-[11px] md:text-xs">Gastos</p>
+            <p className="text-xl md:text-2xl font-bold mt-1">{stats.total_expenses_recorded}</p>
           </div>
-          <div className="bg-surface rounded-[14px] p-5 border border-border">
-            <p className="text-text-muted text-xs">Gastos fijos</p>
-            <p className="text-2xl font-bold mt-1">{stats.total_fixed_expenses}</p>
+          <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-5 border border-border">
+            <p className="text-text-muted text-[11px] md:text-xs">G. fijos</p>
+            <p className="text-xl md:text-2xl font-bold mt-1">{stats.total_fixed_expenses}</p>
           </div>
         </div>
       )}
@@ -93,7 +93,7 @@ export default function Admin() {
           <h3 className="font-semibold text-sm">Usuarios ({users.length})</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="border-b border-border text-text-muted">
                 <th className="text-left p-4 font-medium">Nombre</th>

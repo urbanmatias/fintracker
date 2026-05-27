@@ -80,16 +80,16 @@ export default function RecurringExpenses() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Gastos Recurrentes</h1>
-          <p className="text-text-muted text-sm mt-1">
+          <h1 className="text-xl md:text-2xl font-bold hidden md:block">Gastos Recurrentes</h1>
+          <p className="text-text-muted text-xs md:text-sm md:mt-1">
             Plantillas para registrar gastos que se repiten cada mes (gimnasio, cuotas, etc.)
           </p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-primary hover:bg-primary-dark text-background rounded-[10px] font-semibold text-sm transition-colors"
+          className="px-4 py-2 bg-primary hover:bg-primary-dark text-background rounded-[10px] font-semibold text-sm transition-colors self-start"
         >
           {showForm ? 'Cancelar' : '+ Nuevo recurrente'}
         </button>

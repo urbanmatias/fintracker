@@ -45,49 +45,53 @@ export default function Dashboard() {
   const budgetUsedPercent = today ? (today.total_spent / today.daily_budget) * 100 : 0;
 
   return (
-    <div className="space-y-8">
-      <div>
+    <div className="space-y-5 md:space-y-8">
+      <div className="hidden md:block">
         <h1 className="text-2xl font-bold">Hola, {user?.name} 👋</h1>
         <p className="text-text-muted mt-1">Resumen de hoy</p>
       </div>
+      <div className="md:hidden">
+        <p className="text-sm text-text-muted">Hola, {user?.name}</p>
+        <p className="text-xs text-text-muted/70 mt-0.5">Resumen de hoy</p>
+      </div>
 
-      {/* Budget cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-surface rounded-[14px] p-6 border border-border">
-          <p className="text-text-muted text-xs">Presupuesto diario</p>
-          <p className="text-2xl font-bold mt-1 text-primary">
-            ${today?.daily_budget.toLocaleString('es-AR', { minimumFractionDigits: 2 }) || '0.00'}
+      {/* Budget cards - 2x2 on mobile, 4 cols on desktop */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-6 border border-border">
+          <p className="text-text-muted text-[11px] md:text-xs">Presupuesto</p>
+          <p className="text-lg md:text-2xl font-bold mt-1 text-primary truncate">
+            ${today?.daily_budget.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || '0'}
           </p>
         </div>
 
-        <div className="bg-surface rounded-[14px] p-6 border border-border">
-          <p className="text-text-muted text-xs">Gastado hoy</p>
-          <p className={`text-2xl font-bold mt-1 ${budgetUsedPercent > 100 ? 'text-danger' : 'text-danger'}`}>
-            ${today?.total_spent.toLocaleString('es-AR', { minimumFractionDigits: 2 }) || '0.00'}
+        <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-6 border border-border">
+          <p className="text-text-muted text-[11px] md:text-xs">Gastado hoy</p>
+          <p className={`text-lg md:text-2xl font-bold mt-1 truncate ${budgetUsedPercent > 100 ? 'text-danger' : 'text-danger'}`}>
+            ${today?.total_spent.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || '0'}
           </p>
         </div>
 
-        <div className="bg-surface rounded-[14px] p-6 border border-border">
-          <p className="text-text-muted text-xs">Restante</p>
-          <p className={`text-2xl font-bold mt-1 ${(today?.remaining || 0) < 0 ? 'text-danger' : 'text-secondary'}`}>
-            ${today?.remaining.toLocaleString('es-AR', { minimumFractionDigits: 2 }) || '0.00'}
+        <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-6 border border-border">
+          <p className="text-text-muted text-[11px] md:text-xs">Restante</p>
+          <p className={`text-lg md:text-2xl font-bold mt-1 truncate ${(today?.remaining || 0) < 0 ? 'text-danger' : 'text-secondary'}`}>
+            ${today?.remaining.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || '0'}
           </p>
         </div>
 
-        <div className="bg-surface rounded-[14px] p-6 border border-warning/25">
-          <p className="text-text-muted text-xs">Excedente disponible</p>
-          <p className="text-2xl font-bold mt-1 text-warning">
-            ${today?.excedent_balance.toLocaleString('es-AR', { minimumFractionDigits: 2 }) || '0.00'}
+        <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-6 border border-warning/25">
+          <p className="text-text-muted text-[11px] md:text-xs">Excedente</p>
+          <p className="text-lg md:text-2xl font-bold mt-1 text-warning truncate">
+            ${today?.excedent_balance.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || '0'}
           </p>
-          <p className="text-xs text-text-muted mt-1">Colchón acumulado</p>
+          <p className="text-[10px] md:text-xs text-text-muted mt-0.5 hidden md:block">Colchón acumulado</p>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="bg-surface rounded-[14px] p-6 border border-border">
-        <div className="flex justify-between text-sm mb-3">
+      <div className="bg-surface rounded-[14px] p-4 md:p-6 border border-border">
+        <div className="flex justify-between text-xs md:text-sm mb-3">
           <span className="text-text-muted">Uso del presupuesto</span>
-          <span className={budgetUsedPercent > 100 ? 'text-danger' : 'text-text'}>
+          <span className={budgetUsedPercent > 100 ? 'text-danger font-semibold' : 'text-text font-semibold'}>
             {budgetUsedPercent.toFixed(0)}%
           </span>
         </div>
@@ -100,19 +104,18 @@ export default function Dashboard() {
           ></div>
         </div>
 
-        {/* Over budget warning */}
         {today?.over_budget && (
           <div className="mt-4 p-3 bg-danger/[0.06] border border-danger/20 rounded-[10px]">
-            <p className="text-danger text-sm font-medium">
+            <p className="text-danger text-xs md:text-sm font-medium">
               ⚠️ Te pasaste ${today.over_amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })} del presupuesto
             </p>
             {today.from_excedent > 0 && (
-              <p className="text-text-muted text-xs mt-1">
+              <p className="text-text-muted text-[11px] md:text-xs mt-1">
                 Se descuentan ${today.from_excedent.toLocaleString('es-AR', { minimumFractionDigits: 2 })} del excedente
               </p>
             )}
             {today.over_amount > today.excedent_balance && (
-              <p className="text-danger/80 text-xs mt-1">
+              <p className="text-danger/80 text-[11px] md:text-xs mt-1">
                 ⚡ No alcanza el excedente para cubrir el exceso
               </p>
             )}
@@ -122,29 +125,29 @@ export default function Dashboard() {
 
       {/* Distribution preview */}
       {today && today.remaining > 0 && (
-        <div className="bg-surface rounded-[14px] p-6 border border-border">
-          <h3 className="font-semibold text-sm mb-4">Si no gastás más hoy:</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-primary/[0.06] rounded-xl p-5 border border-primary/20">
-              <p className="text-xs text-text-muted">A inversión ({today.investment_percent}%)</p>
-              <p className="text-lg font-bold text-primary mt-1">
+        <div className="bg-surface rounded-[14px] p-4 md:p-6 border border-border">
+          <h3 className="font-semibold text-xs md:text-sm mb-3 md:mb-4">Si no gastás más hoy:</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+            <div className="bg-primary/[0.06] rounded-xl p-4 md:p-5 border border-primary/20">
+              <p className="text-[11px] md:text-xs text-text-muted">A inversión ({today.investment_percent}%)</p>
+              <p className="text-base md:text-lg font-bold text-primary mt-1">
                 ${today.to_investment.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-xs text-text-muted mt-1">{today.investment_destination}</p>
+              <p className="text-[10px] md:text-xs text-text-muted mt-1 truncate">{today.investment_destination}</p>
             </div>
-            <div className="bg-warning/[0.06] rounded-xl p-5 border border-warning/20">
-              <p className="text-xs text-text-muted">A excedente ({today.savings_percent}%)</p>
-              <p className="text-lg font-bold text-warning mt-1">
+            <div className="bg-warning/[0.06] rounded-xl p-4 md:p-5 border border-warning/20">
+              <p className="text-[11px] md:text-xs text-text-muted">A excedente ({today.savings_percent}%)</p>
+              <p className="text-base md:text-lg font-bold text-warning mt-1">
                 ${today.to_excedent.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-xs text-text-muted mt-1">Colchón para días malos</p>
+              <p className="text-[10px] md:text-xs text-text-muted mt-1">Colchón</p>
             </div>
-            <div className="bg-secondary/[0.06] rounded-xl p-5 border border-secondary/20">
-              <p className="text-xs text-text-muted">Excedente total</p>
-              <p className="text-lg font-bold text-secondary mt-1">
+            <div className="bg-secondary/[0.06] rounded-xl p-4 md:p-5 border border-secondary/20">
+              <p className="text-[11px] md:text-xs text-text-muted">Excedente total</p>
+              <p className="text-base md:text-lg font-bold text-secondary mt-1">
                 ${today.excedent_after_today.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-xs text-text-muted mt-1">Después de hoy</p>
+              <p className="text-[10px] md:text-xs text-text-muted mt-1">Después de hoy</p>
             </div>
           </div>
         </div>
@@ -152,16 +155,16 @@ export default function Dashboard() {
 
       {/* Today's expenses */}
       {today && today.expenses.length > 0 && (
-        <div className="bg-surface rounded-[14px] p-6 border border-border">
-          <h3 className="font-semibold text-sm mb-4">Gastos de hoy</h3>
+        <div className="bg-surface rounded-[14px] p-4 md:p-6 border border-border">
+          <h3 className="font-semibold text-xs md:text-sm mb-3 md:mb-4">Gastos de hoy</h3>
           <div>
             {today.expenses.map((expense) => (
-              <div key={expense.id} className="flex justify-between items-center py-3.5 border-b border-border last:border-0">
-                <div>
-                  <p className="text-sm font-medium">{expense.description}</p>
+              <div key={expense.id} className="flex justify-between items-center py-3 border-b border-border last:border-0">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{expense.description}</p>
                   <p className="text-xs text-text-muted mt-0.5">{expense.category}</p>
                 </div>
-                <p className="text-danger font-semibold text-sm">
+                <p className="text-danger font-semibold text-sm ml-3">
                   -${Number(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -171,9 +174,9 @@ export default function Dashboard() {
       )}
 
       {!user?.monthly_income && (
-        <div className="bg-warning/[0.06] border border-warning/20 rounded-[14px] p-6">
+        <div className="bg-warning/[0.06] border border-warning/20 rounded-[14px] p-4 md:p-6">
           <p className="text-warning font-medium text-sm">⚠️ Configurá tu ingreso mensual</p>
-          <p className="text-text-muted text-sm mt-1">
+          <p className="text-text-muted text-xs md:text-sm mt-1">
             Andá a Configuración para establecer tu ingreso y la regla de distribución.
           </p>
         </div>

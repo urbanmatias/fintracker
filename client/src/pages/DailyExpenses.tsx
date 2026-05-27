@@ -89,14 +89,16 @@ export default function DailyExpenses() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Gastos Diarios</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-primary hover:bg-primary-dark text-background rounded-[10px] font-semibold text-sm transition-colors"
-        >
-          {showForm ? 'Cancelar' : '+ Nuevo gasto'}
-        </button>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+        <h1 className="text-xl md:text-2xl font-bold hidden md:block">Gastos Diarios</h1>
+        <div className="flex gap-3 flex-wrap">
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="px-4 py-2 bg-primary hover:bg-primary-dark text-background rounded-[10px] font-semibold text-sm transition-colors"
+          >
+            {showForm ? 'Cancelar' : '+ Nuevo gasto'}
+          </button>
+        </div>
       </div>
 
       {showForm && (
@@ -174,18 +176,18 @@ export default function DailyExpenses() {
       )}
 
       {/* Filters */}
-      <div className="flex gap-3">
+      <div className="flex flex-col md:flex-row gap-2 md:gap-3">
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar..."
-          className="flex-1 px-4 py-2 bg-surface border border-border rounded-[10px] focus:outline-none focus:border-primary text-text text-sm"
+          className="flex-1 px-4 py-2.5 md:py-2 bg-surface border border-border rounded-[10px] focus:outline-none focus:border-primary text-text text-sm"
         />
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-4 py-2 bg-surface border border-border rounded-[10px] focus:outline-none focus:border-primary text-text text-sm"
+          className="px-4 py-2.5 md:py-2 bg-surface border border-border rounded-[10px] focus:outline-none focus:border-primary text-text text-sm"
         >
           <option value="">Todas las categorías</option>
           {categories.map((c) => (

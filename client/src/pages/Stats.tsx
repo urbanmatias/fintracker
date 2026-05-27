@@ -127,14 +127,14 @@ export default function Stats() {
   const prevMonthName = compare ? new Date(compare.previous.year, compare.previous.month - 1).toLocaleString('es-AR', { month: 'short' }) : '';
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Estadísticas</h1>
+    <div className="space-y-5 md:space-y-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+        <h1 className="text-xl md:text-2xl font-bold hidden md:block">Estadísticas</h1>
         <div className="flex gap-2">
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="px-3 py-2 bg-surface border border-border rounded-[10px] text-text text-sm"
+            className="flex-1 md:flex-initial px-3 py-2 bg-surface border border-border rounded-[10px] text-text text-sm capitalize"
             aria-label="Mes"
           >
             {Array.from({ length: 12 }, (_, i) => (
@@ -156,23 +156,23 @@ export default function Stats() {
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-surface rounded-[14px] p-5 border border-border">
-          <p className="text-text-muted text-xs">Ingreso</p>
-          <p className="text-xl font-bold mt-1">${stats.income.toLocaleString('es-AR')}</p>
+      {/* Summary cards - 2x2 mobile, 4 cols desktop */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-5 border border-border">
+          <p className="text-text-muted text-[11px] md:text-xs">Ingreso</p>
+          <p className="text-base md:text-xl font-bold mt-1 truncate">${stats.income.toLocaleString('es-AR')}</p>
         </div>
-        <div className="bg-surface rounded-[14px] p-5 border border-border">
-          <p className="text-text-muted text-xs">Gastos fijos</p>
-          <p className="text-xl font-bold mt-1 text-warning">${stats.total_fixed_expenses.toLocaleString('es-AR')}</p>
+        <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-5 border border-border">
+          <p className="text-text-muted text-[11px] md:text-xs">Gastos fijos</p>
+          <p className="text-base md:text-xl font-bold mt-1 text-warning truncate">${stats.total_fixed_expenses.toLocaleString('es-AR')}</p>
         </div>
-        <div className="bg-surface rounded-[14px] p-5 border border-border">
-          <p className="text-text-muted text-xs">Gastos diarios</p>
-          <p className="text-xl font-bold mt-1 text-danger">${stats.total_daily_expenses.toLocaleString('es-AR')}</p>
+        <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-5 border border-border">
+          <p className="text-text-muted text-[11px] md:text-xs">Gastos diarios</p>
+          <p className="text-base md:text-xl font-bold mt-1 text-danger truncate">${stats.total_daily_expenses.toLocaleString('es-AR')}</p>
         </div>
-        <div className="bg-surface rounded-[14px] p-5 border border-border">
-          <p className="text-text-muted text-xs">Ahorrado</p>
-          <p className="text-xl font-bold mt-1 text-primary">${stats.total_saved.toLocaleString('es-AR')}</p>
+        <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-5 border border-border">
+          <p className="text-text-muted text-[11px] md:text-xs">Ahorrado</p>
+          <p className="text-base md:text-xl font-bold mt-1 text-primary truncate">${stats.total_saved.toLocaleString('es-AR')}</p>
         </div>
       </div>
 

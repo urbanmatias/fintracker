@@ -56,7 +56,7 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <h1 className="text-2xl font-bold">Configuración</h1>
+      <h1 className="text-xl md:text-2xl font-bold hidden md:block">Configuración</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Income */}
