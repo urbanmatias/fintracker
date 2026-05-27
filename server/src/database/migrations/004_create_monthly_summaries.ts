@@ -2,16 +2,16 @@ import type { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('monthly_summaries', (table) => {
-    table.uuid('id').primary().defaultTo(knex.fn.uuid());
+    table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
     table.uuid('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE');
     table.integer('year').notNullable();
-    table.integer('month').notNullable(); // 1-12
+    table.integer('month').notNullable();
     table.decimal('income', 12, 2).notNullable();
     table.decimal('total_fixed_expenses', 12, 2).notNullable();
     table.decimal('total_daily_expenses', 12, 2).notNullable();
     table.decimal('daily_budget', 12, 2).notNullable();
-    table.decimal('total_saved', 12, 2).defaultTo(0); // lo que quedó en cuenta
-    table.decimal('total_invested', 12, 2).defaultTo(0); // lo que fue a inversión
+    table.decimal('total_saved', 12, 2).defaultTo(0);
+    table.decimal('total_invested', 12, 2).defaultTo(0);
     table.timestamps(true, true);
 
     table.unique(['user_id', 'year', 'month']);

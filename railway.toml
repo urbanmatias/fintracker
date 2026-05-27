@@ -3,5 +3,5 @@ builder = "RAILPACK"
 buildCommand = "cd client && npm ci && npm run build && cd ../server && npm ci && npm run build"
 
 [deploy]
-preDeployCommand = ["cd server && npx knex migrate:latest --knexfile dist/database/knexfile.js"]
+preDeployCommand = ["cd server && NODE_ENV=production npx knex migrate:latest --knexfile dist/database/knexfile.js"]
 startCommand = "cd server && node dist/index.js"

@@ -2,11 +2,11 @@ import type { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('daily_expenses', (table) => {
-    table.uuid('id').primary().defaultTo(knex.fn.uuid());
+    table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
     table.uuid('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE');
     table.decimal('amount', 12, 2).notNullable();
     table.string('description').notNullable();
-    table.string('category').notNullable(); // comida, transporte, entretenimiento, etc.
+    table.string('category').notNullable();
     table.date('date').notNullable();
     table.timestamps(true, true);
   });
