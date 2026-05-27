@@ -189,7 +189,7 @@ router.post('/close-day', authenticate, async (req: AuthRequest, res: Response) 
 // Create daily expense
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { amount, description, category, date } = req.body;
+    const { amount, description, category, date, tags } = req.body;
 
     if (!amount || !description || !category) {
       res.status(400).json({ error: 'Monto, descripción y categoría son requeridos' });
@@ -206,10 +206,10 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         description,
         category,
         date: expenseDate,
+        tags: Array.isArray(tags) ? tags : [],
       })
       .returning('*');
 
-    // If adding to a past day, invalidate balances from that day and recalculate
     if (expenseDate < today) {
       await db('daily_balances')
         .where({ user_id: req.user!.id })
@@ -259,9 +259,8 @@ router.get('/day/:date', authenticate, async (req: AuthRequest, res: Response) =
 // Update a daily expense
 router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { amount, description, category, date } = req.body;
+    const { amount, description, category, date, tags } = req.body;
 
-    // Get the existing expense to know which date may need recalculation
     const existing = await db('daily_expenses')
       .where({ id: req.params.id, user_id: req.user!.id })
       .first();
@@ -278,18 +277,17 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
         ...(description !== undefined && { description }),
         ...(category !== undefined && { category }),
         ...(date !== undefined && { date }),
+        ...(tags !== undefined && { tags: Array.isArray(tags) ? tags : [] }),
         updated_at: new Date(),
       })
       .returning('*');
 
-    // Invalidate balances from the earliest affected date so they get recalculated
     const earliestDate = date && date < existing.date ? date : existing.date;
     await db('daily_balances')
       .where({ user_id: req.user!.id })
       .where('date', '>=', earliestDate)
       .del();
 
-    // Recalculate
     await autoCloseDays(req.user!.id);
 
     res.json(updated);

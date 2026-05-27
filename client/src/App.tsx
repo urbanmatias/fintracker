@@ -7,6 +7,8 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import DailyExpenses from './pages/DailyExpenses';
 import FixedExpenses from './pages/FixedExpenses';
+import RecurringExpenses from './pages/RecurringExpenses';
+import Categories from './pages/Categories';
 import Stats from './pages/Stats';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
@@ -33,6 +35,8 @@ function AppRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="expenses" element={<DailyExpenses />} />
         <Route path="fixed-expenses" element={<FixedExpenses />} />
+        <Route path="recurring-expenses" element={<RecurringExpenses />} />
+        <Route path="categories" element={<Categories />} />
         <Route path="stats" element={<Stats />} />
         <Route path="settings" element={<Settings />} />
         <Route

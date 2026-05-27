@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
+import { useCategories } from '../hooks/useCategories';
 
 interface Expense {
   id: string;
@@ -7,28 +8,21 @@ interface Expense {
   description: string;
   category: string;
   date: string;
+  tags?: string[];
 }
 
-const CATEGORIES = [
-  'Comida',
-  'Bar/Alcohol',
-  'Transporte',
-  'Entretenimiento',
-  'Salud',
-  'Educación',
-  'Ropa',
-  'Hogar',
-  'Otros',
-];
-
 export default function DailyExpenses() {
+  const { categories } = useCategories('daily');
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filterCategory, setFilterCategory] = useState('');
+  const [search, setSearch] = useState('');
 
   const loadExpenses = () => {
     const now = new Date();
@@ -44,17 +38,24 @@ export default function DailyExpenses() {
     loadExpenses();
   }, []);
 
+  useEffect(() => {
+    if (categories.length > 0 && !category) setCategory(categories[0].name);
+  }, [categories, category]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const tags = tagsInput.split(',').map((t) => t.trim()).filter(Boolean);
       await api.post('/daily-expenses', {
         amount: Number(amount),
         description,
         category,
         date,
+        tags,
       });
       setAmount('');
       setDescription('');
+      setTagsInput('');
       setShowForm(false);
       loadExpenses();
     } catch (err) {
@@ -70,6 +71,19 @@ export default function DailyExpenses() {
       console.error(err);
     }
   };
+
+  const getCategoryColor = (name: string) => categories.find((c) => c.name === name)?.color || '#9BA9B4';
+
+  const filteredExpenses = expenses.filter((e) => {
+    if (filterCategory && e.category !== filterCategory) return false;
+    if (search) {
+      const s = search.toLowerCase();
+      const matchDesc = e.description.toLowerCase().includes(s);
+      const matchTags = (e.tags || []).some((t) => t.toLowerCase().includes(s));
+      if (!matchDesc && !matchTags) return false;
+    }
+    return true;
+  });
 
   if (loading) return <div className="animate-pulse text-text-muted">Cargando...</div>;
 
@@ -96,7 +110,7 @@ export default function DailyExpenses() {
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text placeholder-text-muted/50"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text"
                 placeholder="0.00"
                 required
               />
@@ -109,8 +123,8 @@ export default function DailyExpenses() {
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text"
               >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
                 ))}
               </select>
             </div>
@@ -123,7 +137,7 @@ export default function DailyExpenses() {
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text placeholder-text-muted/50"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text"
                 placeholder="¿En qué gastaste?"
                 required
               />
@@ -139,6 +153,17 @@ export default function DailyExpenses() {
               />
             </div>
           </div>
+          <div>
+            <label htmlFor="tags" className="block text-sm text-text-muted mb-1">Etiquetas (separadas por coma)</label>
+            <input
+              id="tags"
+              type="text"
+              value={tagsInput}
+              onChange={(e) => setTagsInput(e.target.value)}
+              className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text"
+              placeholder="ej: viaje-bariloche, regalo, urgencia"
+            />
+          </div>
           <button
             type="submit"
             className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-background rounded-[10px] font-semibold text-sm transition-colors"
@@ -148,21 +173,55 @@ export default function DailyExpenses() {
         </form>
       )}
 
-      {/* Expenses list */}
+      {/* Filters */}
+      <div className="flex gap-3">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar..."
+          className="flex-1 px-4 py-2 bg-surface border border-border rounded-[10px] focus:outline-none focus:border-primary text-text text-sm"
+        />
+        <select
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+          className="px-4 py-2 bg-surface border border-border rounded-[10px] focus:outline-none focus:border-primary text-text text-sm"
+        >
+          <option value="">Todas las categorías</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.name}>{c.name}</option>
+          ))}
+        </select>
+      </div>
+
       <div className="bg-surface rounded-[14px] border border-border overflow-hidden">
-        {expenses.length === 0 ? (
-          <p className="p-6 text-text-muted text-center">No hay gastos este mes</p>
+        {filteredExpenses.length === 0 ? (
+          <p className="p-6 text-text-muted text-center">No hay gastos para mostrar</p>
         ) : (
           <div className="divide-y divide-border">
-            {expenses.map((expense) => (
+            {filteredExpenses.map((expense) => (
               <div key={expense.id} className="flex justify-between items-center p-4 hover:bg-surface-light/30 transition-colors">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{expense.description}</p>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    {expense.category} • {new Date(expense.date).toLocaleDateString('es-AR')}
-                  </p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCategoryColor(expense.category) }}></div>
+                    <p className="text-sm font-medium truncate">{expense.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <p className="text-xs text-text-muted">
+                      {expense.category} • {new Date(expense.date).toLocaleDateString('es-AR')}
+                    </p>
+                    {expense.tags && expense.tags.length > 0 && (
+                      <div className="flex gap-1 flex-wrap">
+                        {expense.tags.map((tag) => (
+                          <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-secondary/15 text-secondary rounded">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 ml-4">
                   <p className="text-danger font-semibold text-sm">
                     -${Number(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                   </p>

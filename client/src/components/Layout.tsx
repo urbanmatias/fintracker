@@ -14,6 +14,8 @@ export default function Layout() {
     { to: '/', label: 'Dashboard' },
     { to: '/expenses', label: 'Gastos' },
     { to: '/fixed-expenses', label: 'Gastos Fijos' },
+    { to: '/recurring-expenses', label: 'Recurrentes' },
+    { to: '/categories', label: 'Categorías' },
     { to: '/stats', label: 'Estadísticas' },
     { to: '/settings', label: 'Configuración' },
   ];

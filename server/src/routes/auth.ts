@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../database/connection';
+import { ensureDefaultCategories } from '../services/defaultCategories';
 
 const router = Router();
 
@@ -36,6 +37,8 @@ router.post('/register', async (req: Request, res: Response) => {
       })
       .returning(['id', 'email', 'name', 'role']);
 
+    await ensureDefaultCategories(user.id);
+
     const token = signToken({ id: user.id, email: user.email, role: user.role });
 
     res.status(201).json({ user, token });
@@ -65,6 +68,8 @@ router.post('/login', async (req: Request, res: Response) => {
       res.status(401).json({ error: 'Credenciales inválidas' });
       return;
     }
+
+    await ensureDefaultCategories(user.id);
 
     const token = signToken({ id: user.id, email: user.email, role: user.role });
 

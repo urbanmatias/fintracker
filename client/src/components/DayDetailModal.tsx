@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
-
-const CATEGORIES = ['Comida', 'Bar/Alcohol', 'Transporte', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Hogar', 'Otros'];
+import { useCategories } from '../hooks/useCategories';
 
 interface Expense {
   id: string;
@@ -9,6 +8,7 @@ interface Expense {
   description: string;
   category: string;
   date: string;
+  tags?: string[];
 }
 
 interface DayBalance {
@@ -36,15 +36,16 @@ interface DayDetailModalProps {
 }
 
 export default function DayDetailModal({ date, onClose, onChange }: DayDetailModalProps) {
+  const { categories } = useCategories('daily');
   const [data, setData] = useState<DayDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
 
-  // Form state
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -56,6 +57,7 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
   const startEdit = (expense: Expense) => {
@@ -63,6 +65,7 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
     setAmount(String(expense.amount));
     setDescription(expense.description);
     setCategory(expense.category);
+    setTagsInput((expense.tags || []).join(', '));
     setShowAdd(false);
   };
 
@@ -71,7 +74,8 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
     setEditingId(null);
     setAmount('');
     setDescription('');
-    setCategory(CATEGORIES[0]);
+    setCategory(categories[0]?.name || '');
+    setTagsInput('');
   };
 
   const cancel = () => {
@@ -81,11 +85,13 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
 
   const save = async () => {
     try {
+      const tags = tagsInput.split(',').map((t) => t.trim()).filter(Boolean);
       if (editingId) {
         await api.put(`/daily-expenses/${editingId}`, {
           amount: Number(amount),
           description,
           category,
+          tags,
         });
       } else {
         await api.post('/daily-expenses', {
@@ -93,6 +99,7 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
           description,
           category,
           date,
+          tags,
         });
       }
       cancel();
@@ -114,6 +121,8 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
     }
   };
 
+  const getCategoryColor = (name: string) => categories.find((c) => c.name === name)?.color || '#9BA9B4';
+
   const formattedDate = new Date(date + 'T12:00:00').toLocaleDateString('es-AR', {
     weekday: 'long',
     day: 'numeric',
@@ -124,8 +133,7 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
       <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-surface rounded-2xl border border-border shadow-2xl">
-        {/* Header */}
-        <div className="sticky top-0 bg-surface border-b border-border p-5 flex justify-between items-start">
+        <div className="sticky top-0 bg-surface border-b border-border p-5 flex justify-between items-start z-10">
           <div>
             <h2 className="text-lg font-semibold capitalize">{formattedDate}</h2>
             {data && (
@@ -147,7 +155,6 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
           <div className="p-8 text-center text-text-muted">Cargando...</div>
         ) : data ? (
           <div className="p-5 space-y-5">
-            {/* Balance summary */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-background rounded-lg p-3 border border-border">
                 <p className="text-[11px] text-text-muted">Presupuesto</p>
@@ -170,7 +177,6 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
               </div>
             </div>
 
-            {/* Balance details if closed */}
             {data.balance && (
               <div className="bg-background rounded-lg p-4 border border-border">
                 <p className="text-xs font-medium text-text-muted mb-3">Distribución del día</p>
@@ -201,7 +207,6 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
               </div>
             )}
 
-            {/* Expenses list */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-semibold">Gastos del día</h3>
@@ -215,7 +220,6 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
                 )}
               </div>
 
-              {/* Add/Edit form */}
               {(showAdd || editingId) && (
                 <div className="bg-background rounded-lg p-4 border border-primary/40 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
@@ -232,8 +236,8 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
                       onChange={(e) => setCategory(e.target.value)}
                       className="w-full px-3 py-2 bg-surface border border-border rounded-md focus:outline-none focus:border-primary text-text text-sm"
                     >
-                      {CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
                       ))}
                     </select>
                   </div>
@@ -242,6 +246,13 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
                     placeholder="Descripción"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-md focus:outline-none focus:border-primary text-text text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Etiquetas (separadas por coma)"
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
                     className="w-full px-3 py-2 bg-surface border border-border rounded-md focus:outline-none focus:border-primary text-text text-sm"
                   />
                   <div className="flex gap-2 justify-end">
@@ -253,7 +264,7 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
                     </button>
                     <button
                       onClick={save}
-                      disabled={!amount || !description}
+                      disabled={!amount || !description || !category}
                       className="text-xs px-3 py-1.5 bg-primary hover:bg-primary-dark text-background rounded-md font-semibold transition-colors disabled:opacity-50"
                     >
                       Guardar
@@ -262,7 +273,6 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
                 </div>
               )}
 
-              {/* List */}
               {data.expenses.length === 0 && !showAdd ? (
                 <p className="text-sm text-text-muted text-center py-6">No hay gastos registrados este día</p>
               ) : (
@@ -272,11 +282,25 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
                       key={expense.id}
                       className={`flex justify-between items-center py-3 ${editingId === expense.id ? 'opacity-30' : ''}`}
                     >
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{expense.description}</p>
-                        <p className="text-xs text-text-muted mt-0.5">{expense.category}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCategoryColor(expense.category) }}></div>
+                          <p className="text-sm font-medium truncate">{expense.description}</p>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <p className="text-xs text-text-muted">{expense.category}</p>
+                          {expense.tags && expense.tags.length > 0 && (
+                            <div className="flex gap-1 flex-wrap">
+                              {expense.tags.map((tag) => (
+                                <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-secondary/15 text-secondary rounded">
+                                  #{tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 ml-3">
                         <p className="text-danger font-semibold text-sm">
                           -${Number(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                         </p>

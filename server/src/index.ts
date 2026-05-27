@@ -13,6 +13,8 @@ import fixedExpensesRoutes from './routes/fixedExpenses';
 import dailyExpensesRoutes from './routes/dailyExpenses';
 import statsRoutes from './routes/stats';
 import adminRoutes from './routes/admin';
+import categoriesRoutes from './routes/categories';
+import recurringExpensesRoutes from './routes/recurringExpenses';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,6 +37,8 @@ app.use('/api/fixed-expenses', fixedExpensesRoutes);
 app.use('/api/daily-expenses', dailyExpensesRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/categories', categoriesRoutes);
+app.use('/api/recurring-expenses', recurringExpensesRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

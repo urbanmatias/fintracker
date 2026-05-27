@@ -143,4 +143,170 @@ router.get('/yearly/:year', authenticate, async (req: AuthRequest, res: Response
   }
 });
 
+// Compare current month vs previous month
+router.get('/compare/:year/:month', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { year, month } = req.params;
+    const y = Number(year);
+    const m = Number(month);
+    const prevDate = new Date(y, m - 2, 1);
+    const prevYear = prevDate.getFullYear();
+    const prevMonth = prevDate.getMonth() + 1;
+
+    const getMonthData = async (yy: number, mm: number) => {
+      const total = await db('daily_expenses')
+        .where({ user_id: req.user!.id })
+        .whereRaw('EXTRACT(MONTH FROM date) = ? AND EXTRACT(YEAR FROM date) = ?', [mm, yy])
+        .sum('amount as total')
+        .first();
+
+      const byCat = await db('daily_expenses')
+        .where({ user_id: req.user!.id })
+        .whereRaw('EXTRACT(MONTH FROM date) = ? AND EXTRACT(YEAR FROM date) = ?', [mm, yy])
+        .groupBy('category')
+        .select('category')
+        .sum('amount as total');
+
+      return {
+        total: Number(total?.total || 0),
+        by_category: byCat.map((c) => ({ category: c.category, total: Number(c.total) })),
+      };
+    };
+
+    const current = await getMonthData(y, m);
+    const previous = await getMonthData(prevYear, prevMonth);
+
+    // Combine categories
+    const catMap: Record<string, { current: number; previous: number }> = {};
+    current.by_category.forEach((c) => {
+      catMap[c.category] = { current: c.total, previous: 0 };
+    });
+    previous.by_category.forEach((c) => {
+      if (catMap[c.category]) {
+        catMap[c.category].previous = c.total;
+      } else {
+        catMap[c.category] = { current: 0, previous: c.total };
+      }
+    });
+
+    const categories = Object.entries(catMap).map(([name, vals]) => ({
+      category: name,
+      current: vals.current,
+      previous: vals.previous,
+      diff: vals.current - vals.previous,
+      diff_percent: vals.previous > 0 ? ((vals.current - vals.previous) / vals.previous) * 100 : null,
+    }));
+
+    res.json({
+      current: { year: y, month: m, total: current.total },
+      previous: { year: prevYear, month: prevMonth, total: previous.total },
+      diff: current.total - previous.total,
+      diff_percent: previous.total > 0 ? ((current.total - previous.total) / previous.total) * 100 : null,
+      categories,
+    });
+  } catch (error) {
+    console.error('Compare stats error:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Day of week analysis (last 90 days)
+router.get('/by-weekday', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const days = Number(req.query.days || 90);
+    const result = await db('daily_expenses')
+      .where({ user_id: req.user!.id })
+      .whereRaw(`date >= CURRENT_DATE - INTERVAL '${days} days'`)
+      .select(db.raw('EXTRACT(DOW FROM date) as dow'))
+      .sum('amount as total')
+      .count('* as count')
+      .groupBy('dow')
+      .orderBy('dow');
+
+    // Postgres DOW: 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    // Map to readable
+    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const data = dayNames.map((name, i) => {
+      const row = result.find((r) => Number(r.dow) === i);
+      return {
+        day: name,
+        day_index: i,
+        total: Number(row?.total || 0),
+        count: Number(row?.count || 0),
+        avg: row && Number(row.count) > 0 ? Number(row.total) / Number(row.count) : 0,
+      };
+    });
+
+    // Reorder: Mon-Sun
+    const ordered = [...data.slice(1), data[0]];
+
+    res.json({ days, by_weekday: ordered });
+  } catch (error) {
+    console.error('Weekday stats error:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Trends - average per day/week/month + by category over time (last N months)
+router.get('/trends', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const months = Number(req.query.months || 6);
+
+    // Per-month totals and by-category
+    const trend: Array<{ year: number; month: number; total: number; categories: Record<string, number> }> = [];
+    const today = new Date();
+
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+
+      const monthRows = await db('daily_expenses')
+        .where({ user_id: req.user!.id })
+        .whereRaw('EXTRACT(MONTH FROM date) = ? AND EXTRACT(YEAR FROM date) = ?', [m, y])
+        .groupBy('category')
+        .select('category')
+        .sum('amount as total');
+
+      const cats: Record<string, number> = {};
+      let total = 0;
+      monthRows.forEach((r) => {
+        cats[r.category] = Number(r.total);
+        total += Number(r.total);
+      });
+
+      trend.push({ year: y, month: m, total, categories: cats });
+    }
+
+    // Averages
+    const totalSpent = trend.reduce((sum, t) => sum + t.total, 0);
+    const totalDays = months * 30; // approx
+    const avgPerDay = totalDays > 0 ? totalSpent / totalDays : 0;
+    const avgPerWeek = avgPerDay * 7;
+    const avgPerMonth = months > 0 ? totalSpent / months : 0;
+
+    // By category averages
+    const allCats = new Set<string>();
+    trend.forEach((t) => Object.keys(t.categories).forEach((c) => allCats.add(c)));
+    const catAverages = Array.from(allCats).map((cat) => {
+      const total = trend.reduce((sum, t) => sum + (t.categories[cat] || 0), 0);
+      return { category: cat, total, avg_per_month: total / months };
+    }).sort((a, b) => b.total - a.total);
+
+    res.json({
+      months,
+      trend,
+      averages: {
+        per_day: avgPerDay,
+        per_week: avgPerWeek,
+        per_month: avgPerMonth,
+      },
+      by_category: catAverages,
+    });
+  } catch (error) {
+    console.error('Trends error:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 export default router;
