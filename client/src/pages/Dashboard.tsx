@@ -7,8 +7,17 @@ interface TodaySummary {
   daily_budget: number;
   total_spent: number;
   remaining: number;
-  to_savings: number;
+  over_budget: boolean;
+  over_amount: number;
   to_investment: number;
+  to_excedent: number;
+  from_excedent: number;
+  excedent_balance: number;
+  excedent_after_today: number;
+  effective_available: number;
+  savings_percent: number;
+  investment_percent: number;
+  investment_destination: string;
   expenses: Array<{
     id: string;
     amount: number;
@@ -43,7 +52,7 @@ export default function Dashboard() {
       </div>
 
       {/* Budget cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-6 border border-white/[0.08]">
           <p className="text-white/40 text-sm">Presupuesto diario</p>
           <p className="text-2xl font-bold mt-1 text-primary">
@@ -64,6 +73,14 @@ export default function Dashboard() {
             ${today?.remaining.toLocaleString('es-AR', { minimumFractionDigits: 2 }) || '0.00'}
           </p>
         </div>
+
+        <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-6 border border-warning/20">
+          <p className="text-white/40 text-sm">Excedente disponible</p>
+          <p className="text-2xl font-bold mt-1 text-warning">
+            ${today?.excedent_balance.toLocaleString('es-AR', { minimumFractionDigits: 2 }) || '0.00'}
+          </p>
+          <p className="text-xs text-white/25 mt-1">Colchón acumulado</p>
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -82,25 +99,52 @@ export default function Dashboard() {
             style={{ width: `${Math.min(budgetUsedPercent, 100)}%` }}
           ></div>
         </div>
+
+        {/* Over budget warning */}
+        {today?.over_budget && (
+          <div className="mt-4 p-3 bg-danger/[0.08] border border-danger/20 rounded-xl">
+            <p className="text-danger text-sm font-medium">
+              ⚠️ Te pasaste ${today.over_amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })} del presupuesto
+            </p>
+            {today.from_excedent > 0 && (
+              <p className="text-white/40 text-xs mt-1">
+                Se descuentan ${today.from_excedent.toLocaleString('es-AR', { minimumFractionDigits: 2 })} del excedente
+              </p>
+            )}
+            {today.over_amount > today.excedent_balance && (
+              <p className="text-danger/70 text-xs mt-1">
+                ⚡ No alcanza el excedente para cubrir el exceso
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Distribution preview */}
+      {/* Distribution preview - only when there's savings */}
       {today && today.remaining > 0 && (
         <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-6 border border-white/[0.08]">
           <h3 className="font-medium mb-4">Si no gastás más hoy:</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-primary/[0.08] backdrop-blur-sm rounded-xl p-5 border border-primary/20">
-              <p className="text-sm text-white/40">A inversión ({user?.investment_percent}%)</p>
+              <p className="text-sm text-white/40">A inversión ({today.investment_percent}%)</p>
               <p className="text-lg font-bold text-primary mt-1">
                 ${today.to_investment.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-xs text-white/25 mt-1">{user?.investment_destination}</p>
+              <p className="text-xs text-white/25 mt-1">{today.investment_destination}</p>
+            </div>
+            <div className="bg-warning/[0.08] backdrop-blur-sm rounded-xl p-5 border border-warning/20">
+              <p className="text-sm text-white/40">A excedente ({today.savings_percent}%)</p>
+              <p className="text-lg font-bold text-warning mt-1">
+                ${today.to_excedent.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+              </p>
+              <p className="text-xs text-white/25 mt-1">Colchón para días malos</p>
             </div>
             <div className="bg-secondary/[0.08] backdrop-blur-sm rounded-xl p-5 border border-secondary/20">
-              <p className="text-sm text-white/40">A cuenta ({user?.savings_percent}%)</p>
+              <p className="text-sm text-white/40">Excedente total</p>
               <p className="text-lg font-bold text-secondary mt-1">
-                ${today.to_savings.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                ${today.excedent_after_today.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </p>
+              <p className="text-xs text-white/25 mt-1">Después de hoy</p>
             </div>
           </div>
         </div>
