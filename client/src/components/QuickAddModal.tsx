@@ -8,20 +8,23 @@ interface QuickAddModalProps {
 }
 
 export default function QuickAddModal({ onClose, onSaved }: QuickAddModalProps) {
-  const { categories } = useCategories('daily');
+  const { categories, loading: catsLoading } = useCategories('daily');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const amountRef = useRef<HTMLInputElement>(null);
 
+  // Auto-select first category once they load
   useEffect(() => {
-    if (categories.length > 0 && !category) setCategory(categories[0].name);
+    if (categories.length > 0 && !category) {
+      setCategory(categories[0].name);
+    }
   }, [categories, category]);
 
   useEffect(() => {
-    // Auto-focus amount on open
     setTimeout(() => amountRef.current?.focus(), 100);
   }, []);
 
@@ -33,33 +36,54 @@ export default function QuickAddModal({ onClose, onSaved }: QuickAddModalProps) 
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  const canSubmit = !!amount && Number(amount) > 0 && !!description.trim() && !!category && !saving;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !description || !category) return;
+    setError('');
+
+    if (!amount || Number(amount) <= 0) {
+      setError('El monto tiene que ser mayor a 0');
+      return;
+    }
+    if (!description.trim()) {
+      setError('Falta la descripción');
+      return;
+    }
+    if (!category) {
+      setError('Falta la categoría');
+      return;
+    }
+
     setSaving(true);
     try {
       await api.post('/daily-expenses', {
         amount: Number(amount),
-        description,
+        description: description.trim(),
         category,
         date,
       });
       onSaved();
-    } catch (err) {
-      console.error(err);
-      alert('Error al guardar');
-    } finally {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      setError(axiosErr.response?.data?.error || 'Error al guardar');
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-background/80 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <form
         onSubmit={handleSubmit}
-        className="w-full md:max-w-md bg-surface rounded-t-2xl md:rounded-2xl border-t md:border border-border p-5 space-y-4 animate-in slide-in-from-bottom duration-200"
+        className="w-full md:max-w-md bg-surface rounded-t-2xl md:rounded-2xl border-t md:border border-border flex flex-col max-h-[90vh] animate-in slide-in-from-bottom duration-200"
       >
-        <div className="flex justify-between items-center">
+        {/* Header */}
+        <div className="flex justify-between items-center p-5 border-b border-border flex-shrink-0">
           <h2 className="text-lg font-semibold">Agregar gasto</h2>
           <button
             type="button"
@@ -71,68 +95,89 @@ export default function QuickAddModal({ onClose, onSaved }: QuickAddModalProps) 
           </button>
         </div>
 
-        <div>
-          <label htmlFor="qa-amount" className="block text-xs text-text-muted mb-1">Monto</label>
-          <input
-            ref={amountRef}
-            id="qa-amount"
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:border-primary text-text text-2xl font-bold"
-            placeholder="0.00"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="qa-description" className="block text-xs text-text-muted mb-1">Descripción</label>
-          <input
-            id="qa-description"
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:border-primary text-text text-base"
-            placeholder="¿En qué gastaste?"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-text-muted mb-2">Categoría</label>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setCategory(c.name)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
-                  category === c.name
-                    ? 'border-primary text-primary bg-primary/10'
-                    : 'border-border text-text-muted hover:border-text-muted'
-                }`}
-                style={category === c.name ? { borderColor: c.color, color: c.color, backgroundColor: `${c.color}15` } : {}}
-              >
-                {c.name}
-              </button>
-            ))}
+        {/* Scrollable content */}
+        <div className="overflow-y-auto p-5 space-y-4 flex-1">
+          <div>
+            <label htmlFor="qa-amount" className="block text-xs text-text-muted mb-1">Monto</label>
+            <input
+              ref={amountRef}
+              id="qa-amount"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:border-primary text-text text-2xl font-bold money"
+              placeholder="0.00"
+              required
+            />
           </div>
+
+          <div>
+            <label htmlFor="qa-description" className="block text-xs text-text-muted mb-1">Descripción</label>
+            <input
+              id="qa-description"
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:border-primary text-text text-base"
+              placeholder="¿En qué gastaste?"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs text-text-muted mb-2">Categoría</label>
+            {catsLoading ? (
+              <p className="text-sm text-text-muted">Cargando categorías...</p>
+            ) : categories.length === 0 ? (
+              <p className="text-sm text-warning">
+                No tenés categorías. Andá a "Categorías" y creá al menos una para poder cargar gastos.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {categories.map((c) => {
+                  const selected = category === c.name;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setCategory(c.name)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                        selected
+                          ? 'border-primary text-primary bg-primary/10'
+                          : 'border-border text-text-muted hover:border-text-muted'
+                      }`}
+                      style={selected ? { borderColor: c.color, color: c.color, backgroundColor: `${c.color}15` } : {}}
+                    >
+                      {c.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="qa-date" className="block text-xs text-text-muted mb-1">Fecha</label>
+            <input
+              id="qa-date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-4 py-2.5 bg-background border border-border rounded-xl focus:outline-none focus:border-primary text-text text-sm"
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm text-danger bg-danger/[0.08] border border-danger/20 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
         </div>
 
-        <div>
-          <label htmlFor="qa-date" className="block text-xs text-text-muted mb-1">Fecha</label>
-          <input
-            id="qa-date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full px-4 py-2.5 bg-background border border-border rounded-xl focus:outline-none focus:border-primary text-text text-sm"
-          />
-        </div>
-
-        <div className="flex gap-2 pt-2">
+        {/* Sticky footer with actions */}
+        <div className="flex gap-2 p-5 border-t border-border flex-shrink-0 pb-safe">
           <button
             type="button"
             onClick={onClose}
@@ -142,8 +187,8 @@ export default function QuickAddModal({ onClose, onSaved }: QuickAddModalProps) 
           </button>
           <button
             type="submit"
-            disabled={saving || !amount || !description || !category}
-            className="flex-1 py-3 bg-primary hover:bg-primary-dark text-background rounded-xl font-semibold text-sm transition-colors disabled:opacity-50"
+            disabled={!canSubmit}
+            className="flex-1 py-3 bg-primary hover:bg-primary-dark text-background rounded-xl font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? 'Guardando...' : 'Guardar'}
           </button>

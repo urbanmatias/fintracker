@@ -53,7 +53,8 @@ export default function Layout() {
   const currentNav = navItems.find((n) => n.to === location.pathname);
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen md:flex">
+      {/* Mobile drawer overlay */}
       {drawerOpen && (
         <div
           className="md:hidden fixed inset-0 bg-background/70 backdrop-blur-sm z-40"
@@ -61,8 +62,9 @@ export default function Layout() {
         />
       )}
 
+      {/* Sidebar - fixed on mobile (drawer), fixed on desktop too for clean scrolling */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-border flex flex-col transform transition-transform duration-200 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-border flex flex-col transform transition-transform duration-200 ${
           drawerOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
@@ -107,7 +109,7 @@ export default function Layout() {
 
         <div className="p-3 border-t border-border">
           <div className="flex items-center gap-2.5 px-3 py-2 mb-1">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-background font-semibold text-xs">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-background font-semibold text-xs flex-shrink-0">
               {user?.name?.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
@@ -125,7 +127,9 @@ export default function Layout() {
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main area - body scrolls naturally, sidebar offset on desktop */}
+      <div className="md:ml-64 min-h-screen flex flex-col">
+        {/* Mobile sticky top header */}
         <header className="md:hidden sticky top-0 z-30 bg-sidebar/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => setDrawerOpen(true)}
@@ -137,11 +141,13 @@ export default function Layout() {
           <h2 className="text-base font-semibold flex-1 truncate">{currentNav?.label || 'FinTracker'}</h2>
         </header>
 
-        <main className="flex-1 p-4 md:p-10 overflow-auto pb-24 md:pb-10">
+        {/* Main content - no overflow, body scrolls */}
+        <main className="flex-1 p-4 md:p-10 pb-28 md:pb-10">
           <Outlet />
         </main>
 
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-sidebar/95 backdrop-blur border-t border-border flex items-center justify-around px-2 py-1.5 pb-safe">
+        {/* Mobile bottom nav - fixed to viewport */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-sidebar/95 backdrop-blur border-t border-border flex items-center justify-around px-2 py-1.5 pb-safe">
           {bottomNavItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -164,13 +170,14 @@ export default function Layout() {
             className="flex flex-col items-center justify-center flex-1 py-2 rounded-lg text-text-muted"
             aria-label="Agregar gasto"
           >
-            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-background -mt-1">
+            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-background -mt-1 shadow-lg shadow-primary/30">
               <Plus className="w-5 h-5" strokeWidth={2.5} />
             </div>
             <span className="text-[10px] mt-0.5 font-medium">Agregar</span>
           </button>
         </nav>
 
+        {/* Desktop FAB */}
         <button
           onClick={() => setQuickAddOpen(true)}
           className="hidden md:flex fixed bottom-8 right-8 w-14 h-14 bg-primary hover:bg-primary-dark text-background rounded-full shadow-lg shadow-primary/25 items-center justify-center transition-all hover:scale-105 z-30"

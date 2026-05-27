@@ -1,12 +1,16 @@
 import { Router, Response } from 'express';
 import { AuthRequest, authenticate } from '../middleware/auth';
 import db from '../database/connection';
+import { ensureDefaultCategories } from '../services/defaultCategories';
 
 const router = Router();
 
 // Get current user profile
 router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    // Make sure default categories exist for this user (handles legacy accounts)
+    await ensureDefaultCategories(req.user!.id);
+
     const user = await db('users')
       .where({ id: req.user!.id })
       .select('id', 'email', 'name', 'role', 'monthly_income', 'savings_percent', 'investment_percent', 'investment_destination')
