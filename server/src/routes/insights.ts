@@ -169,25 +169,23 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
       .sum('amount as total')
       .first();
 
-    const avgDaily = await db('daily_expenses')
-      .where({ user_id: userId })
-      .whereRaw("date >= CURRENT_DATE - INTERVAL '30 days'")
-      .whereRaw("date < CURRENT_DATE")
-      .avg(db.raw('daily_total'))
-      .from(
-        db('daily_expenses')
+    // Average daily spend over the last 30 days (excluding today)
+    const avgRow = await db
+      .with('per_day', (qb) => {
+        qb.from('daily_expenses')
           .where({ user_id: userId })
           .whereRaw("date >= CURRENT_DATE - INTERVAL '30 days'")
           .whereRaw("date < CURRENT_DATE")
           .select('date')
-          .sum('amount as daily_total')
-          .groupBy('date')
-          .as('per_day')
-      )
+          .sum({ daily_total: 'amount' })
+          .groupBy('date');
+      })
+      .from('per_day')
+      .avg({ avg: 'daily_total' })
       .first() as { avg: string | null } | undefined;
 
     const todayNum = Number(todaySpent?.total || 0);
-    const avgNum = Number(avgDaily?.avg || 0);
+    const avgNum = Number(avgRow?.avg || 0);
 
     if (avgNum > 0 && todayNum > avgNum * 2) {
       insights.push({

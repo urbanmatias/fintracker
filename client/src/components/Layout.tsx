@@ -68,8 +68,8 @@ export default function Layout() {
       >
         <div className="p-6 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <Wallet className="w-4.5 h-4.5 text-background" />
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-background" />
             </div>
             <h1 className="text-lg font-bold gradient-text">FinTracker</h1>
           </div>

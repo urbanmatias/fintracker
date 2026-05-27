@@ -19,6 +19,8 @@ async function getExcedentBalance(userId: string, beforeDate: string): Promise<n
 // Helper: get daily budget for a user
 async function getDailyBudget(userId: string): Promise<number> {
   const user = await db('users').where({ id: userId }).first();
+  if (!user) return 0;
+
   const fixedExpenses = await db('fixed_expenses')
     .where({ user_id: userId, active: true })
     .sum('amount as total')
@@ -30,7 +32,13 @@ async function getDailyBudget(userId: string): Promise<number> {
     0
   ).getDate();
 
-  return (Number(user.monthly_income) - Number(fixedExpenses?.total || 0)) / daysInMonth;
+  const income = Number(user.monthly_income || 0);
+  const fixed = Number(fixedExpenses?.total || 0);
+
+  if (income <= 0 || daysInMonth <= 0) return 0;
+
+  const budget = (income - fixed) / daysInMonth;
+  return Number.isFinite(budget) ? budget : 0;
 }
 
 // Get daily expenses (with optional date filters)

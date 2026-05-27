@@ -51,7 +51,7 @@ export default function InsightCards({ insights }: InsightCardsProps) {
         className={`fade-in border rounded-[14px] p-4 md:p-5 ${TONE_STYLES[current.tone]} transition-all`}
       >
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-current/10 flex items-center justify-center">
+          <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-black/20 flex items-center justify-center">
             <Icon className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
@@ -67,7 +67,7 @@ export default function InsightCards({ insights }: InsightCardsProps) {
                 key={i}
                 onClick={() => setIndex(i)}
                 className={`h-1 rounded-full transition-all ${
-                  i === index ? 'w-6 bg-current' : 'w-1.5 bg-current/30'
+                  i === index ? 'w-6 bg-current' : 'w-1.5 bg-current opacity-30'
                 }`}
                 aria-label={`Insight ${i + 1}`}
               />

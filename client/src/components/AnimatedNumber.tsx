@@ -15,6 +15,7 @@ export default function AnimatedNumber({
   prefix = '$',
   decimals = 0,
 }: AnimatedNumberProps) {
+  const safeValue = Number.isFinite(value) ? value : 0;
   const [displayValue, setDisplayValue] = useState(0);
   const startValueRef = useRef(0);
   const startTimeRef = useRef<number | null>(null);
@@ -22,14 +23,13 @@ export default function AnimatedNumber({
 
   useEffect(() => {
     const startValue = startValueRef.current;
-    const targetValue = value;
+    const targetValue = safeValue;
     startTimeRef.current = null;
 
     const animate = (timestamp: number) => {
       if (startTimeRef.current === null) startTimeRef.current = timestamp;
       const elapsed = timestamp - startTimeRef.current;
       const progress = Math.min(elapsed / duration, 1);
-      // ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       const current = startValue + (targetValue - startValue) * eased;
       setDisplayValue(current);
@@ -46,7 +46,7 @@ export default function AnimatedNumber({
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [value, duration]);
+  }, [safeValue, duration]);
 
   return (
     <span className={`money ${className}`}>

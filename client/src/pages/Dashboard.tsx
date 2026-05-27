@@ -40,16 +40,15 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      api.get('/daily-expenses/today'),
-      api.get('/insights'),
-    ])
-      .then(([t, i]) => {
-        setToday(t.data);
-        setInsights(i.data.insights || []);
-      })
+    api.get('/daily-expenses/today')
+      .then((res) => setToday(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    // Insights are non-critical - don't block the dashboard if they fail
+    api.get('/insights')
+      .then((res) => setInsights(res.data.insights || []))
+      .catch((err) => console.error('Insights failed:', err));
   }, []);
 
   if (loading) {
@@ -66,7 +65,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!user?.monthly_income) {
+  if (!user?.monthly_income || Number(user.monthly_income) <= 0) {
     return (
       <div className="bg-surface rounded-[14px] border border-border">
         <EmptyState
@@ -87,7 +86,9 @@ export default function Dashboard() {
     );
   }
 
-  const budgetUsedPercent = today ? (today.total_spent / today.daily_budget) * 100 : 0;
+  const safeBudget = today?.daily_budget && today.daily_budget > 0 ? today.daily_budget : 0;
+  const safeSpent = today?.total_spent || 0;
+  const budgetUsedPercent = safeBudget > 0 ? (safeSpent / safeBudget) * 100 : 0;
   const greeting = greetings[Math.floor(Math.random() * greetings.length)];
   const remaining = today?.remaining || 0;
   const isOverBudget = remaining < 0;
@@ -105,7 +106,7 @@ export default function Dashboard() {
           <p className="text-[11px] md:text-xs text-text-muted mt-1">Te quedan para hoy</p>
 
           <div className="hero-glow my-3 md:my-4">
-            <h1 className={`text-5xl md:text-7xl font-bold count-up ${isOverBudget ? 'text-danger' : 'gradient-text'}`}>
+            <h1 className={`text-5xl md:text-7xl font-bold count-up money ${isOverBudget ? 'text-danger' : 'gradient-text'}`}>
               <AnimatedNumber value={remaining} duration={800} decimals={0} />
             </h1>
           </div>
