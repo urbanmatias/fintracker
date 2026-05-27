@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
+import AnimatedNumber from '../components/AnimatedNumber';
+import InsightCards, { type Insight } from '../components/InsightCard';
+import EmptyState from '../components/EmptyState';
+import { Settings as SettingsIcon, TrendingUp, Wallet, PiggyBank, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface TodaySummary {
   date: string;
@@ -26,128 +31,185 @@ interface TodaySummary {
   }>;
 }
 
+const greetings = ['Hola', '¿Cómo va?', 'Buenas', '¿Qué tal?'];
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [today, setToday] = useState<TodaySummary | null>(null);
+  const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/daily-expenses/today')
-      .then((res) => setToday(res.data))
+    Promise.all([
+      api.get('/daily-expenses/today'),
+      api.get('/insights'),
+    ])
+      .then(([t, i]) => {
+        setToday(t.data);
+        setInsights(i.data.insights || []);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
-    return <div className="animate-pulse text-text-muted">Cargando...</div>;
+    return (
+      <div className="space-y-4">
+        <div className="h-32 bg-surface rounded-2xl animate-pulse"></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-24 bg-surface rounded-xl animate-pulse"></div>
+          <div className="h-24 bg-surface rounded-xl animate-pulse"></div>
+          <div className="h-24 bg-surface rounded-xl animate-pulse"></div>
+          <div className="h-24 bg-surface rounded-xl animate-pulse"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user?.monthly_income) {
+    return (
+      <div className="bg-surface rounded-[14px] border border-border">
+        <EmptyState
+          icon={SettingsIcon}
+          title="Configurá tu ingreso para empezar"
+          description="Necesitamos saber cuánto ganás por mes para calcular tu presupuesto diario y la regla de distribución."
+          action={
+            <Link
+              to="/settings"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-dark text-background rounded-xl font-semibold text-sm transition-colors"
+            >
+              Ir a configuración
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          }
+        />
+      </div>
+    );
   }
 
   const budgetUsedPercent = today ? (today.total_spent / today.daily_budget) * 100 : 0;
+  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+  const remaining = today?.remaining || 0;
+  const isOverBudget = remaining < 0;
 
   return (
-    <div className="space-y-5 md:space-y-8">
-      <div className="hidden md:block">
-        <h1 className="text-2xl font-bold">Hola, {user?.name} 👋</h1>
-        <p className="text-text-muted mt-1">Resumen de hoy</p>
-      </div>
-      <div className="md:hidden">
-        <p className="text-sm text-text-muted">Hola, {user?.name}</p>
-        <p className="text-xs text-text-muted/70 mt-0.5">Resumen de hoy</p>
-      </div>
+    <div className="space-y-5 md:space-y-6 fade-in-stagger">
+      {/* Hero card - the star of the show */}
+      <div className="relative bg-gradient-to-br from-surface to-sidebar border border-border rounded-2xl md:rounded-[20px] p-6 md:p-8 overflow-hidden">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
 
-      {/* Budget cards - 2x2 on mobile, 4 cols on desktop */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-6 border border-border">
-          <p className="text-text-muted text-[11px] md:text-xs">Presupuesto</p>
-          <p className="text-lg md:text-2xl font-bold mt-1 text-primary truncate">
-            ${today?.daily_budget.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || '0'}
+        <div className="relative">
+          <p className="text-xs md:text-sm text-text-muted">
+            {greeting}, <span className="text-text font-medium">{user?.name?.split(' ')[0]}</span>
           </p>
-        </div>
+          <p className="text-[11px] md:text-xs text-text-muted mt-1">Te quedan para hoy</p>
 
-        <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-6 border border-border">
-          <p className="text-text-muted text-[11px] md:text-xs">Gastado hoy</p>
-          <p className={`text-lg md:text-2xl font-bold mt-1 truncate ${budgetUsedPercent > 100 ? 'text-danger' : 'text-danger'}`}>
+          <div className="hero-glow my-3 md:my-4">
+            <h1 className={`text-5xl md:text-7xl font-bold count-up ${isOverBudget ? 'text-danger' : 'gradient-text'}`}>
+              <AnimatedNumber value={remaining} duration={800} decimals={0} />
+            </h1>
+          </div>
+
+          {/* Mini progress */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[11px] md:text-xs text-text-muted">
+              <span>de ${today?.daily_budget.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
+              <span className={budgetUsedPercent > 100 ? 'text-danger font-semibold' : 'font-semibold'}>
+                {budgetUsedPercent.toFixed(0)}%
+              </span>
+            </div>
+            <div className="w-full bg-border/60 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-2 rounded-full transition-all duration-700 ${
+                  budgetUsedPercent > 100 ? 'bg-danger' : budgetUsedPercent > 75 ? 'bg-warning' : 'bg-gradient-to-r from-primary to-secondary'
+                }`}
+                style={{ width: `${Math.min(budgetUsedPercent, 100)}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Insights */}
+      {insights.length > 0 && <InsightCards insights={insights} />}
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-surface rounded-2xl p-4 border border-border lift">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Wallet className="w-3.5 h-3.5 text-text-muted" />
+            <p className="text-[11px] text-text-muted">Gastado</p>
+          </div>
+          <p className="money text-base md:text-lg font-bold text-danger truncate">
             ${today?.total_spent.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || '0'}
           </p>
         </div>
 
-        <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-6 border border-border">
-          <p className="text-text-muted text-[11px] md:text-xs">Restante</p>
-          <p className={`text-lg md:text-2xl font-bold mt-1 truncate ${(today?.remaining || 0) < 0 ? 'text-danger' : 'text-secondary'}`}>
-            ${today?.remaining.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || '0'}
-          </p>
-        </div>
-
-        <div className="bg-surface rounded-[12px] md:rounded-[14px] p-4 md:p-6 border border-warning/25">
-          <p className="text-text-muted text-[11px] md:text-xs">Excedente</p>
-          <p className="text-lg md:text-2xl font-bold mt-1 text-warning truncate">
+        <div className="bg-surface rounded-2xl p-4 border border-warning/25 lift">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <PiggyBank className="w-3.5 h-3.5 text-warning" />
+            <p className="text-[11px] text-text-muted">Excedente</p>
+          </div>
+          <p className="money text-base md:text-lg font-bold text-warning truncate">
             ${today?.excedent_balance.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || '0'}
           </p>
-          <p className="text-[10px] md:text-xs text-text-muted mt-0.5 hidden md:block">Colchón acumulado</p>
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      <div className="bg-surface rounded-[14px] p-4 md:p-6 border border-border">
-        <div className="flex justify-between text-xs md:text-sm mb-3">
-          <span className="text-text-muted">Uso del presupuesto</span>
-          <span className={budgetUsedPercent > 100 ? 'text-danger font-semibold' : 'text-text font-semibold'}>
-            {budgetUsedPercent.toFixed(0)}%
-          </span>
-        </div>
-        <div className="w-full bg-border rounded-full h-2.5">
-          <div
-            className={`h-2.5 rounded-full transition-all ${
-              budgetUsedPercent > 100 ? 'bg-danger' : budgetUsedPercent > 75 ? 'bg-warning' : 'bg-primary'
-            }`}
-            style={{ width: `${Math.min(budgetUsedPercent, 100)}%` }}
-          ></div>
         </div>
 
-        {today?.over_budget && (
-          <div className="mt-4 p-3 bg-danger/[0.06] border border-danger/20 rounded-[10px]">
-            <p className="text-danger text-xs md:text-sm font-medium">
-              ⚠️ Te pasaste ${today.over_amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })} del presupuesto
-            </p>
-            {today.from_excedent > 0 && (
-              <p className="text-text-muted text-[11px] md:text-xs mt-1">
-                Se descuentan ${today.from_excedent.toLocaleString('es-AR', { minimumFractionDigits: 2 })} del excedente
-              </p>
-            )}
-            {today.over_amount > today.excedent_balance && (
-              <p className="text-danger/80 text-[11px] md:text-xs mt-1">
-                ⚡ No alcanza el excedente para cubrir el exceso
-              </p>
-            )}
+        <div className="bg-surface rounded-2xl p-4 border border-primary/25 lift">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <TrendingUp className="w-3.5 h-3.5 text-primary" />
+            <p className="text-[11px] text-text-muted">A invertir</p>
           </div>
-        )}
+          <p className="money text-base md:text-lg font-bold text-primary truncate">
+            ${today?.to_investment.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || '0'}
+          </p>
+        </div>
       </div>
+
+      {/* Over budget alert */}
+      {today?.over_budget && (
+        <div className="bg-danger/[0.08] border border-danger/25 rounded-2xl p-4 fade-in">
+          <p className="text-danger text-sm font-semibold">
+            Te pasaste ${today.over_amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })} del presupuesto
+          </p>
+          {today.from_excedent > 0 && (
+            <p className="text-text-muted text-xs mt-1">
+              Se descuentan ${today.from_excedent.toLocaleString('es-AR', { minimumFractionDigits: 2 })} de tu excedente
+            </p>
+          )}
+          {today.over_amount > today.excedent_balance && (
+            <p className="text-danger/80 text-xs mt-1">
+              ⚡ El excedente no cubre el exceso de hoy
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Distribution preview */}
       {today && today.remaining > 0 && (
-        <div className="bg-surface rounded-[14px] p-4 md:p-6 border border-border">
-          <h3 className="font-semibold text-xs md:text-sm mb-3 md:mb-4">Si no gastás más hoy:</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-            <div className="bg-primary/[0.06] rounded-xl p-4 md:p-5 border border-primary/20">
-              <p className="text-[11px] md:text-xs text-text-muted">A inversión ({today.investment_percent}%)</p>
-              <p className="text-base md:text-lg font-bold text-primary mt-1">
+        <div className="bg-surface rounded-2xl p-5 md:p-6 border border-border">
+          <h3 className="font-semibold text-sm mb-4">Si no gastás más hoy</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="bg-primary/[0.06] rounded-xl p-4 border border-primary/20">
+              <p className="text-[11px] text-text-muted">Inversión · {today.investment_percent}%</p>
+              <p className="money text-lg font-bold text-primary mt-1">
                 ${today.to_investment.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-[10px] md:text-xs text-text-muted mt-1 truncate">{today.investment_destination}</p>
+              <p className="text-[10px] text-text-muted mt-1 truncate">{today.investment_destination}</p>
             </div>
-            <div className="bg-warning/[0.06] rounded-xl p-4 md:p-5 border border-warning/20">
-              <p className="text-[11px] md:text-xs text-text-muted">A excedente ({today.savings_percent}%)</p>
-              <p className="text-base md:text-lg font-bold text-warning mt-1">
+            <div className="bg-warning/[0.06] rounded-xl p-4 border border-warning/20">
+              <p className="text-[11px] text-text-muted">Excedente · {today.savings_percent}%</p>
+              <p className="money text-lg font-bold text-warning mt-1">
                 ${today.to_excedent.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-[10px] md:text-xs text-text-muted mt-1">Colchón</p>
+              <p className="text-[10px] text-text-muted mt-1">Colchón</p>
             </div>
-            <div className="bg-secondary/[0.06] rounded-xl p-4 md:p-5 border border-secondary/20">
-              <p className="text-[11px] md:text-xs text-text-muted">Excedente total</p>
-              <p className="text-base md:text-lg font-bold text-secondary mt-1">
+            <div className="bg-secondary/[0.06] rounded-xl p-4 border border-secondary/20">
+              <p className="text-[11px] text-text-muted">Excedente total</p>
+              <p className="money text-lg font-bold text-secondary mt-1">
                 ${today.excedent_after_today.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-[10px] md:text-xs text-text-muted mt-1">Después de hoy</p>
+              <p className="text-[10px] text-text-muted mt-1">Después de hoy</p>
             </div>
           </div>
         </div>
@@ -155,16 +217,16 @@ export default function Dashboard() {
 
       {/* Today's expenses */}
       {today && today.expenses.length > 0 && (
-        <div className="bg-surface rounded-[14px] p-4 md:p-6 border border-border">
-          <h3 className="font-semibold text-xs md:text-sm mb-3 md:mb-4">Gastos de hoy</h3>
-          <div>
+        <div className="bg-surface rounded-2xl p-5 md:p-6 border border-border">
+          <h3 className="font-semibold text-sm mb-3">Gastos de hoy · {today.expenses.length}</h3>
+          <div className="space-y-1">
             {today.expenses.map((expense) => (
               <div key={expense.id} className="flex justify-between items-center py-3 border-b border-border last:border-0">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{expense.description}</p>
-                  <p className="text-xs text-text-muted mt-0.5">{expense.category}</p>
+                  <p className="text-[11px] text-text-muted mt-0.5">{expense.category}</p>
                 </div>
-                <p className="text-danger font-semibold text-sm ml-3">
+                <p className="money text-danger font-semibold text-sm ml-3">
                   -${Number(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -173,12 +235,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      {!user?.monthly_income && (
-        <div className="bg-warning/[0.06] border border-warning/20 rounded-[14px] p-4 md:p-6">
-          <p className="text-warning font-medium text-sm">⚠️ Configurá tu ingreso mensual</p>
-          <p className="text-text-muted text-xs md:text-sm mt-1">
-            Andá a Configuración para establecer tu ingreso y la regla de distribución.
-          </p>
+      {today && today.expenses.length === 0 && (
+        <div className="bg-surface rounded-2xl border border-border">
+          <EmptyState
+            icon={Wallet}
+            title="Día limpio 🌱"
+            description="Todavía no cargaste gastos hoy. Tocá el + para empezar."
+          />
         </div>
       )}
     </div>

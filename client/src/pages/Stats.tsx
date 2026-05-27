@@ -109,7 +109,15 @@ export default function Stats() {
     return categories.find((c) => c.name === name)?.color || FALLBACK_COLORS[fallbackIndex % FALLBACK_COLORS.length];
   };
 
-  if (loading) return <div className="animate-pulse text-text-muted">Cargando estadísticas...</div>;
+  if (loading) return (
+    <div className="space-y-4">
+      <div className="h-12 bg-surface rounded-xl animate-pulse"></div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[0,1,2,3].map((i) => <div key={i} className="h-20 bg-surface rounded-xl animate-pulse"></div>)}
+      </div>
+      <div className="h-64 bg-surface rounded-xl animate-pulse"></div>
+    </div>
+  );
   if (!stats) return <div className="text-text-muted">No hay datos para este período</div>;
 
   const categoryData = stats.by_category.map((c) => ({
