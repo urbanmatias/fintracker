@@ -53,7 +53,7 @@ export default function Layout() {
   const currentNav = navItems.find((n) => n.to === location.pathname);
 
   return (
-    <div className="min-h-screen md:flex">
+    <div className="min-h-screen">
       {/* Mobile drawer overlay */}
       {drawerOpen && (
         <div
@@ -142,8 +142,10 @@ export default function Layout() {
         </header>
 
         {/* Main content - no overflow, body scrolls */}
-        <main className="flex-1 p-4 md:p-10 pb-28 md:pb-10">
-          <Outlet />
+        <main className="flex-1 p-4 md:p-8 lg:p-10 pb-28 md:pb-10">
+          <div className="max-w-6xl mx-auto w-full">
+            <Outlet />
+          </div>
         </main>
 
         {/* Mobile bottom nav - fixed to viewport */}
