@@ -11,6 +11,7 @@ interface Expense {
 
 const CATEGORIES = [
   'Comida',
+  'Bar/Alcohol',
   'Transporte',
   'Entretenimiento',
   'Salud',

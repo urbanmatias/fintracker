@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 
-const CATEGORIES = ['Comida', 'Transporte', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Hogar', 'Otros'];
+const CATEGORIES = ['Comida', 'Bar/Alcohol', 'Transporte', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Hogar', 'Otros'];
 
 interface Expense {
   id: string;
