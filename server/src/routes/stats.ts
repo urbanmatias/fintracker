@@ -1,12 +1,58 @@
 import { Router, Response } from 'express';
 import { AuthRequest, authenticate } from '../middleware/auth';
 import db from '../database/connection';
+import { autoCloseDays } from '../services/dailyClose';
 
 const router = Router();
+
+// Get calendar heatmap for a month - shows daily balance status
+router.get('/calendar/:year/:month', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    await autoCloseDays(req.user!.id);
+
+    const { year, month } = req.params;
+
+    const balances = await db('daily_balances')
+      .where({ user_id: req.user!.id })
+      .whereRaw('EXTRACT(MONTH FROM date) = ? AND EXTRACT(YEAR FROM date) = ?', [month, year])
+      .orderBy('date', 'asc');
+
+    // Also get today's live data (not yet closed)
+    const today = new Date().toISOString().split('T')[0];
+    const todayExpenses = await db('daily_expenses')
+      .where({ user_id: req.user!.id, date: today })
+      .sum('amount as total')
+      .first();
+
+    const days = balances.map((b) => ({
+      date: b.date,
+      budget: Number(b.budget),
+      spent: Number(b.spent),
+      surplus: Number(b.surplus),
+      excedent_balance: Number(b.excedent_balance),
+      status: Number(b.surplus) > 0 ? 'positive' : Number(b.surplus) < 0 ? 'negative' : 'neutral',
+    }));
+
+    res.json({
+      year: Number(year),
+      month: Number(month),
+      days,
+      today: {
+        date: today,
+        spent: Number(todayExpenses?.total || 0),
+      },
+    });
+  } catch (error) {
+    console.error('Get calendar error:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
 
 // Get monthly summary
 router.get('/monthly/:year/:month', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    await autoCloseDays(req.user!.id);
+
     const { year, month } = req.params;
 
     const user = await db('users').where({ id: req.user!.id }).first();

@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { AuthRequest, authenticate } from '../middleware/auth';
 import db from '../database/connection';
+import { autoCloseDays } from '../services/dailyClose';
 
 const router = Router();
 
@@ -61,6 +62,9 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 // Get today's summary with excedent info
 router.get('/today', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    // Auto-close any past days first
+    await autoCloseDays(req.user!.id);
+
     const today = new Date().toISOString().split('T')[0];
 
     const expenses = await db('daily_expenses')

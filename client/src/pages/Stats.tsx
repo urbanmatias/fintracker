@@ -1,6 +1,23 @@
 import { useState, useEffect } from 'react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import api from '../api/client';
+import Calendar from '../components/Calendar';
+
+interface CalendarDay {
+  date: string;
+  budget: number;
+  spent: number;
+  surplus: number;
+  excedent_balance: number;
+  status: 'positive' | 'negative' | 'neutral';
+}
+
+interface CalendarData {
+  year: number;
+  month: number;
+  days: CalendarDay[];
+  today: { date: string; spent: number };
+}
 
 interface MonthlyStats {
   year: number;
@@ -22,14 +39,21 @@ const COLORS = ['#19C37D', '#4ADEDE', '#FBBF24', '#FF5D73', '#A78BFA', '#F472B6'
 
 export default function Stats() {
   const [stats, setStats] = useState<MonthlyStats | null>(null);
+  const [calendar, setCalendar] = useState<CalendarData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     setLoading(true);
-    api.get(`/stats/monthly/${selectedYear}/${selectedMonth}`)
-      .then((res) => setStats(res.data))
+    Promise.all([
+      api.get(`/stats/monthly/${selectedYear}/${selectedMonth}`),
+      api.get(`/stats/calendar/${selectedYear}/${selectedMonth}`),
+    ])
+      .then(([statsRes, calRes]) => {
+        setStats(statsRes.data);
+        setCalendar(calRes.data);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [selectedMonth, selectedYear]);
@@ -97,6 +121,20 @@ export default function Stats() {
           <p className="text-xl font-bold mt-1 text-primary">${stats.total_saved.toLocaleString('es-AR')}</p>
         </div>
       </div>
+
+      {/* Calendar */}
+      {calendar && (
+        <div className="bg-surface rounded-[14px] p-6 border border-border">
+          <h3 className="font-semibold text-sm mb-4">Calendario del mes</h3>
+          <Calendar
+            year={calendar.year}
+            month={calendar.month}
+            days={calendar.days}
+            todaySpent={calendar.today.spent}
+            todayDate={calendar.today.date}
+          />
+        </div>
+      )}
 
       {/* Distribution */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
