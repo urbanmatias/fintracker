@@ -25,8 +25,8 @@ export default function Layout() {
   return (
     <div className="min-h-screen flex">
       {/* Sidebar */}
-      <aside className="w-64 backdrop-blur-xl bg-white/[0.04] border-r border-white/[0.08] flex flex-col">
-        <div className="p-6 border-b border-white/[0.08]">
+      <aside className="w-64 bg-sidebar border-r border-border flex flex-col">
+        <div className="p-6 border-b border-border">
           <h1 className="text-xl font-bold text-primary">💰 FinTracker</h1>
         </div>
 
@@ -36,10 +36,10 @@ export default function Layout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `block px-4 py-2.5 rounded-xl transition-all ${
+                `block px-4 py-2.5 rounded-[10px] transition-all text-sm ${
                   isActive
-                    ? 'bg-primary/15 text-primary font-medium backdrop-blur-sm'
-                    : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80'
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-text-muted hover:bg-primary/[0.06] hover:text-text'
                 }`
               }
             >
@@ -48,11 +48,11 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/[0.08]">
-          <div className="text-sm text-white/40 mb-2">{user?.name}</div>
+        <div className="p-4 border-t border-border">
+          <div className="text-sm text-text-muted mb-2">{user?.name}</div>
           <button
             onClick={handleLogout}
-            className="w-full px-4 py-2 text-sm text-danger/80 hover:bg-danger/10 rounded-xl transition-colors"
+            className="w-full px-3 py-2 text-sm text-danger text-left hover:bg-danger/[0.08] rounded-lg transition-colors"
           >
             Cerrar sesión
           </button>
@@ -60,7 +60,7 @@ export default function Layout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 p-8 overflow-auto">
+      <main className="flex-1 p-10 overflow-auto">
         <Outlet />
       </main>
     </div>

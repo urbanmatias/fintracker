@@ -67,60 +67,60 @@ export default function FixedExpenses() {
 
   const totalActive = expenses.filter((e) => e.active).reduce((sum, e) => sum + Number(e.amount), 0);
 
-  if (loading) return <div className="animate-pulse text-white/40">Cargando...</div>;
+  if (loading) return <div className="animate-pulse text-text-muted">Cargando...</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Gastos Fijos</h1>
-          <p className="text-white/40 text-sm mt-1">
+          <p className="text-text-muted text-sm mt-1">
             Total activos: ${totalActive.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
           </p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-primary/80 hover:bg-primary rounded-xl font-medium transition-all backdrop-blur-sm"
+          className="px-4 py-2 bg-primary hover:bg-primary-dark text-background rounded-[10px] font-semibold text-sm transition-colors"
         >
           {showForm ? 'Cancelar' : '+ Nuevo gasto fijo'}
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-6 border border-white/[0.08] space-y-4">
+        <form onSubmit={handleSubmit} className="bg-surface rounded-[14px] p-6 border border-border space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label htmlFor="name" className="block text-sm text-white/50 mb-1">Nombre</label>
+              <label htmlFor="name" className="block text-sm text-text-muted mb-1">Nombre</label>
               <input
                 id="name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/[0.1] rounded-xl focus:outline-none focus:border-primary/50 text-white placeholder-white/20"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text placeholder-text-muted/50"
                 placeholder="Ej: Netflix"
                 required
               />
             </div>
             <div>
-              <label htmlFor="amount" className="block text-sm text-white/50 mb-1">Monto</label>
+              <label htmlFor="amount" className="block text-sm text-text-muted mb-1">Monto</label>
               <input
                 id="amount"
                 type="number"
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/[0.1] rounded-xl focus:outline-none focus:border-primary/50 text-white placeholder-white/20"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text placeholder-text-muted/50"
                 placeholder="0.00"
                 required
               />
             </div>
             <div>
-              <label htmlFor="category" className="block text-sm text-white/50 mb-1">Categoría</label>
+              <label htmlFor="category" className="block text-sm text-text-muted mb-1">Categoría</label>
               <select
                 id="category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/[0.1] rounded-xl focus:outline-none focus:border-primary/50 text-white"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text"
               >
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -130,40 +130,40 @@ export default function FixedExpenses() {
           </div>
           <button
             type="submit"
-            className="px-6 py-2.5 bg-primary/80 hover:bg-primary rounded-xl font-medium transition-all"
+            className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-background rounded-[10px] font-semibold text-sm transition-colors"
           >
             Guardar
           </button>
         </form>
       )}
 
-      <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl border border-white/[0.08] overflow-hidden">
+      <div className="bg-surface rounded-[14px] border border-border overflow-hidden">
         {expenses.length === 0 ? (
-          <p className="p-6 text-white/40 text-center">No hay gastos fijos configurados</p>
+          <p className="p-6 text-text-muted text-center">No hay gastos fijos configurados</p>
         ) : (
-          <div className="divide-y divide-white/[0.05]">
+          <div className="divide-y divide-border">
             {expenses.map((expense) => (
-              <div key={expense.id} className={`flex justify-between items-center p-4 transition-colors hover:bg-white/[0.03] ${!expense.active ? 'opacity-40' : ''}`}>
+              <div key={expense.id} className={`flex justify-between items-center p-4 hover:bg-surface-light/30 transition-colors ${!expense.active ? 'opacity-40' : ''}`}>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => toggleActive(expense)}
-                    className={`w-5 h-5 rounded-md border transition-all ${expense.active ? 'bg-secondary/80 border-secondary' : 'border-white/20'} flex items-center justify-center`}
+                    className={`w-5 h-5 rounded-md border transition-all flex items-center justify-center ${expense.active ? 'bg-primary border-primary' : 'border-border'}`}
                     aria-label={expense.active ? 'Desactivar' : 'Activar'}
                   >
-                    {expense.active && <span className="text-xs">✓</span>}
+                    {expense.active && <span className="text-xs text-background font-bold">✓</span>}
                   </button>
                   <div>
-                    <p className="font-medium">{expense.name}</p>
-                    <p className="text-xs text-white/30">{expense.category}</p>
+                    <p className="text-sm font-medium">{expense.name}</p>
+                    <p className="text-xs text-text-muted mt-0.5">{expense.category}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <p className="font-medium">
+                  <p className="font-semibold text-sm">
                     ${Number(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                   </p>
                   <button
                     onClick={() => handleDelete(expense.id)}
-                    className="text-white/20 hover:text-danger transition-colors"
+                    className="text-text-muted/50 hover:text-danger transition-colors"
                     aria-label="Eliminar"
                   >
                     ✕

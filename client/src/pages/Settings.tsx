@@ -21,15 +21,13 @@ export default function Settings() {
   }, [user]);
 
   const handleSavingsChange = (value: string) => {
-    const num = Number(value);
     setSavingsPercent(value);
-    setInvestmentPercent(String(100 - num));
+    setInvestmentPercent(String(100 - Number(value)));
   };
 
   const handleInvestmentChange = (value: string) => {
-    const num = Number(value);
     setInvestmentPercent(value);
-    setSavingsPercent(String(100 - num));
+    setSavingsPercent(String(100 - Number(value)));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,37 +60,37 @@ export default function Settings() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Income */}
-        <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-6 border border-white/[0.08] space-y-4">
-          <h3 className="font-medium">Ingreso mensual</h3>
+        <div className="bg-surface rounded-[14px] p-6 border border-border space-y-4">
+          <h3 className="font-semibold text-sm">Ingreso mensual</h3>
           <div>
-            <label htmlFor="income" className="block text-sm text-white/50 mb-1">Monto ($)</label>
+            <label htmlFor="income" className="block text-sm text-text-muted mb-1">Monto ($)</label>
             <input
               id="income"
               type="number"
               step="0.01"
               value={income}
               onChange={(e) => setIncome(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/[0.1] rounded-xl focus:outline-none focus:border-primary/50 text-white placeholder-white/20"
+              className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text placeholder-text-muted/50"
               placeholder="Ej: 500000"
             />
           </div>
           {income && (
-            <p className="text-white/30 text-sm">
+            <p className="text-text-muted text-sm">
               Presupuesto diario estimado (sin gastos fijos): ${dailyBudgetPreview}
             </p>
           )}
         </div>
 
         {/* Distribution rule */}
-        <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-6 border border-white/[0.08] space-y-4">
-          <h3 className="font-medium">Regla de distribución</h3>
-          <p className="text-white/40 text-sm">
+        <div className="bg-surface rounded-[14px] p-6 border border-border space-y-4">
+          <h3 className="font-semibold text-sm">Regla de distribución</h3>
+          <p className="text-text-muted text-sm">
             Lo que no gastás cada día se distribuye según estos porcentajes:
           </p>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="investment" className="block text-sm text-white/50 mb-1">
+              <label htmlFor="investment" className="block text-sm text-text-muted mb-1">
                 A inversión (%)
               </label>
               <input
@@ -102,12 +100,12 @@ export default function Settings() {
                 max="100"
                 value={investmentPercent}
                 onChange={(e) => handleInvestmentChange(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/[0.1] rounded-xl focus:outline-none focus:border-primary/50 text-white"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text"
               />
             </div>
             <div>
-              <label htmlFor="savings" className="block text-sm text-white/50 mb-1">
-                Queda en cuenta (%)
+              <label htmlFor="savings" className="block text-sm text-text-muted mb-1">
+                A excedente (%)
               </label>
               <input
                 id="savings"
@@ -116,29 +114,29 @@ export default function Settings() {
                 max="100"
                 value={savingsPercent}
                 onChange={(e) => handleSavingsChange(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/[0.1] rounded-xl focus:outline-none focus:border-primary/50 text-white"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text"
               />
             </div>
           </div>
 
           {/* Visual bar */}
-          <div className="w-full h-4 rounded-full overflow-hidden flex backdrop-blur-sm">
+          <div className="w-full h-3 rounded-full overflow-hidden flex bg-border">
             <div
-              className="bg-primary/70 h-full transition-all"
+              className="bg-primary h-full transition-all"
               style={{ width: `${investmentPercent}%` }}
             ></div>
             <div
-              className="bg-secondary/70 h-full transition-all"
+              className="bg-warning h-full transition-all"
               style={{ width: `${savingsPercent}%` }}
             ></div>
           </div>
-          <div className="flex justify-between text-xs text-white/30">
+          <div className="flex justify-between text-xs text-text-muted">
             <span>Inversión: {investmentPercent}%</span>
-            <span>Cuenta: {savingsPercent}%</span>
+            <span>Excedente: {savingsPercent}%</span>
           </div>
 
           <div>
-            <label htmlFor="destination" className="block text-sm text-white/50 mb-1">
+            <label htmlFor="destination" className="block text-sm text-text-muted mb-1">
               Destino de inversión (descripción)
             </label>
             <input
@@ -146,14 +144,14 @@ export default function Settings() {
               type="text"
               value={investmentDestination}
               onChange={(e) => setInvestmentDestination(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/[0.1] rounded-xl focus:outline-none focus:border-primary/50 text-white placeholder-white/20"
+              className="w-full px-4 py-2.5 bg-background border border-border rounded-[10px] focus:outline-none focus:border-primary text-text placeholder-text-muted/50"
               placeholder="Ej: CEDEARs en IOL, FCI, Crypto..."
             />
           </div>
         </div>
 
         {message && (
-          <p className={`text-sm ${message.includes('Error') ? 'text-danger' : 'text-secondary'}`}>
+          <p className={`text-sm ${message.includes('Error') ? 'text-danger' : 'text-primary'}`}>
             {message}
           </p>
         )}
@@ -161,7 +159,7 @@ export default function Settings() {
         <button
           type="submit"
           disabled={saving}
-          className="px-6 py-2.5 bg-primary/80 hover:bg-primary rounded-xl font-medium transition-all disabled:opacity-50"
+          className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-background rounded-[10px] font-semibold text-sm transition-colors disabled:opacity-50"
         >
           {saving ? 'Guardando...' : 'Guardar configuración'}
         </button>

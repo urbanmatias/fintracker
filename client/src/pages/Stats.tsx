@@ -18,7 +18,7 @@ interface MonthlyStats {
   days_in_month: number;
 }
 
-const COLORS = ['#818cf8', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#22d3ee', '#f472b6', '#a3e635'];
+const COLORS = ['#19C37D', '#4ADEDE', '#FBBF24', '#FF5D73', '#A78BFA', '#F472B6', '#34D399', '#818CF8'];
 
 export default function Stats() {
   const [stats, setStats] = useState<MonthlyStats | null>(null);
@@ -34,8 +34,8 @@ export default function Stats() {
       .finally(() => setLoading(false));
   }, [selectedMonth, selectedYear]);
 
-  if (loading) return <div className="animate-pulse text-white/40">Cargando estadísticas...</div>;
-  if (!stats) return <div className="text-white/40">No hay datos para este período</div>;
+  if (loading) return <div className="animate-pulse text-text-muted">Cargando estadísticas...</div>;
+  if (!stats) return <div className="text-text-muted">No hay datos para este período</div>;
 
   const categoryData = stats.by_category.map((c) => ({
     name: c.category,
@@ -56,7 +56,7 @@ export default function Stats() {
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="px-3 py-2 bg-white/[0.06] border border-white/[0.1] rounded-xl text-white text-sm backdrop-blur-sm"
+            className="px-3 py-2 bg-surface border border-border rounded-[10px] text-text text-sm"
             aria-label="Mes"
           >
             {Array.from({ length: 12 }, (_, i) => (
@@ -68,7 +68,7 @@ export default function Stats() {
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-3 py-2 bg-white/[0.06] border border-white/[0.1] rounded-xl text-white text-sm backdrop-blur-sm"
+            className="px-3 py-2 bg-surface border border-border rounded-[10px] text-text text-sm"
             aria-label="Año"
           >
             {[2024, 2025, 2026, 2027].map((y) => (
@@ -80,70 +80,68 @@ export default function Stats() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-5 border border-white/[0.08]">
-          <p className="text-white/40 text-xs">Ingreso</p>
+        <div className="bg-surface rounded-[14px] p-5 border border-border">
+          <p className="text-text-muted text-xs">Ingreso</p>
           <p className="text-xl font-bold mt-1">${stats.income.toLocaleString('es-AR')}</p>
         </div>
-        <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-5 border border-white/[0.08]">
-          <p className="text-white/40 text-xs">Gastos fijos</p>
+        <div className="bg-surface rounded-[14px] p-5 border border-border">
+          <p className="text-text-muted text-xs">Gastos fijos</p>
           <p className="text-xl font-bold mt-1 text-warning">${stats.total_fixed_expenses.toLocaleString('es-AR')}</p>
         </div>
-        <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-5 border border-white/[0.08]">
-          <p className="text-white/40 text-xs">Gastos diarios</p>
+        <div className="bg-surface rounded-[14px] p-5 border border-border">
+          <p className="text-text-muted text-xs">Gastos diarios</p>
           <p className="text-xl font-bold mt-1 text-danger">${stats.total_daily_expenses.toLocaleString('es-AR')}</p>
         </div>
-        <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-5 border border-white/[0.08]">
-          <p className="text-white/40 text-xs">Ahorrado</p>
-          <p className="text-xl font-bold mt-1 text-secondary">${stats.total_saved.toLocaleString('es-AR')}</p>
+        <div className="bg-surface rounded-[14px] p-5 border border-border">
+          <p className="text-text-muted text-xs">Ahorrado</p>
+          <p className="text-xl font-bold mt-1 text-primary">${stats.total_saved.toLocaleString('es-AR')}</p>
         </div>
       </div>
 
       {/* Distribution */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-6 border border-white/[0.08]">
-          <h3 className="font-medium mb-3">Distribución del ahorro</h3>
+        <div className="bg-surface rounded-[14px] p-6 border border-border">
+          <h3 className="font-semibold text-sm mb-3">Distribución del ahorro</h3>
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-white/40">A inversión</span>
-              <span className="text-primary font-medium">${stats.to_investment.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+              <span className="text-text-muted text-sm">A inversión</span>
+              <span className="text-primary font-semibold">${stats.to_investment.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-white/40">A cuenta</span>
-              <span className="text-secondary font-medium">${stats.to_savings.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+              <span className="text-text-muted text-sm">A excedente</span>
+              <span className="text-warning font-semibold">${stats.to_savings.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
         </div>
 
-        <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-6 border border-white/[0.08]">
-          <h3 className="font-medium mb-3">Presupuesto diario</h3>
+        <div className="bg-surface rounded-[14px] p-6 border border-border">
+          <h3 className="font-semibold text-sm mb-3">Presupuesto diario</h3>
           <p className="text-3xl font-bold text-primary">${stats.daily_budget.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
-          <p className="text-white/30 text-sm mt-1">{stats.days_in_month} días en el mes</p>
+          <p className="text-text-muted text-sm mt-1">{stats.days_in_month} días en el mes</p>
         </div>
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Daily spending chart */}
-        <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-6 border border-white/[0.08]">
-          <h3 className="font-medium mb-4">Gasto diario vs presupuesto</h3>
+        <div className="bg-surface rounded-[14px] p-6 border border-border">
+          <h3 className="font-semibold text-sm mb-4">Gasto diario vs presupuesto</h3>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={dailyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" fontSize={12} />
-              <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#2B3642" />
+              <XAxis dataKey="date" stroke="#9BA9B4" fontSize={12} />
+              <YAxis stroke="#9BA9B4" fontSize={12} />
               <Tooltip
-                contentStyle={{ backgroundColor: 'rgba(26,26,46,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', backdropFilter: 'blur(20px)' }}
-                labelStyle={{ color: '#fff' }}
+                contentStyle={{ backgroundColor: '#1E2730', border: '1px solid #2B3642', borderRadius: '10px' }}
+                labelStyle={{ color: '#F3F7FA' }}
               />
-              <Line type="monotone" dataKey="gasto" stroke="#f87171" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="presupuesto" stroke="#818cf8" strokeWidth={1} strokeDasharray="5 5" dot={false} />
+              <Line type="monotone" dataKey="gasto" stroke="#FF5D73" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="presupuesto" stroke="#19C37D" strokeWidth={1} strokeDasharray="5 5" dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Category pie chart */}
-        <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-6 border border-white/[0.08]">
-          <h3 className="font-medium mb-4">Por categoría</h3>
+        <div className="bg-surface rounded-[14px] p-6 border border-border">
+          <h3 className="font-semibold text-sm mb-4">Por categoría</h3>
           {categoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
@@ -161,30 +159,30 @@ export default function Stats() {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ backgroundColor: 'rgba(26,26,46,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                  contentStyle={{ backgroundColor: '#1E2730', border: '1px solid #2B3642', borderRadius: '10px' }}
                 />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-white/40 text-center py-8">Sin datos</p>
+            <p className="text-text-muted text-center py-8">Sin datos</p>
           )}
         </div>
       </div>
 
-      {/* Category breakdown table */}
+      {/* Category breakdown */}
       {stats.by_category.length > 0 && (
-        <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-6 border border-white/[0.08]">
-          <h3 className="font-medium mb-4">Detalle por categoría</h3>
+        <div className="bg-surface rounded-[14px] p-6 border border-border">
+          <h3 className="font-semibold text-sm mb-4">Detalle por categoría</h3>
           <div className="space-y-2">
             {stats.by_category.map((cat, i) => (
               <div key={cat.category} className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-3">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>
-                  <span>{cat.category}</span>
+                  <span className="text-sm">{cat.category}</span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-white/30 text-sm">{cat.count} gastos</span>
-                  <span className="font-medium">${Number(cat.total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+                  <span className="text-text-muted text-xs">{cat.count} gastos</span>
+                  <span className="font-semibold text-sm">${Number(cat.total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
             ))}
