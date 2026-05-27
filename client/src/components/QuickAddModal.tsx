@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../api/client';
 import { useCategories } from '../hooks/useCategories';
+import { useDataRefresh } from '../context/DataContext';
 
 interface QuickAddModalProps {
   onClose: () => void;
@@ -9,6 +10,7 @@ interface QuickAddModalProps {
 
 export default function QuickAddModal({ onClose, onSaved }: QuickAddModalProps) {
   const { categories, loading: catsLoading } = useCategories('daily');
+  const { refresh } = useDataRefresh();
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -63,6 +65,7 @@ export default function QuickAddModal({ onClose, onSaved }: QuickAddModalProps) 
         category,
         date,
       });
+      refresh();
       onSaved();
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: string } } };

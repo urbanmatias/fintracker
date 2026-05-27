@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import { useCategories } from '../hooks/useCategories';
+import { useDataRefresh } from '../context/DataContext';
 
 interface Expense {
   id: string;
@@ -37,6 +38,7 @@ interface DayDetailModalProps {
 
 export default function DayDetailModal({ date, onClose, onChange }: DayDetailModalProps) {
   const { categories } = useCategories('daily');
+  const { refresh } = useDataRefresh();
   const [data, setData] = useState<DayDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -105,6 +107,7 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
       cancel();
       load();
       onChange();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -116,6 +119,7 @@ export default function DayDetailModal({ date, onClose, onChange }: DayDetailMod
       await api.delete(`/daily-expenses/${id}`);
       load();
       onChange();
+      refresh();
     } catch (err) {
       console.error(err);
     }

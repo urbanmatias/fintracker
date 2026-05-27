@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import { useCategories } from '../hooks/useCategories';
+import { useDataRefresh } from '../context/DataContext';
 
 interface FixedExpense {
   id: string;
@@ -12,6 +13,7 @@ interface FixedExpense {
 
 export default function FixedExpenses() {
   const { categories } = useCategories('fixed');
+  const { refresh } = useDataRefresh();
   const [expenses, setExpenses] = useState<FixedExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -46,6 +48,7 @@ export default function FixedExpenses() {
       setAmount('');
       setShowForm(false);
       loadExpenses();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -55,6 +58,7 @@ export default function FixedExpenses() {
     try {
       await api.put(`/fixed-expenses/${expense.id}`, { ...expense, active: !expense.active });
       loadExpenses();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -64,6 +68,7 @@ export default function FixedExpenses() {
     try {
       await api.delete(`/fixed-expenses/${id}`);
       loadExpenses();
+      refresh();
     } catch (err) {
       console.error(err);
     }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useDataRefresh } from '../context/DataContext';
 import api from '../api/client';
 import AnimatedNumber from '../components/AnimatedNumber';
 import InsightCards, { type Insight } from '../components/InsightCard';
@@ -35,6 +36,7 @@ const greetings = ['Hola', '¿Cómo va?', 'Buenas', '¿Qué tal?'];
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { refreshKey } = useDataRefresh();
   const [today, setToday] = useState<TodaySummary | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,7 @@ export default function Dashboard() {
     api.get('/insights')
       .then((res) => setInsights(res.data.insights || []))
       .catch((err) => console.error('Insights failed:', err));
-  }, []);
+  }, [refreshKey]);
 
   if (loading) {
     return (

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import { useCategories } from '../hooks/useCategories';
+import { useDataRefresh } from '../context/DataContext';
 
 interface Expense {
   id: string;
@@ -13,6 +14,7 @@ interface Expense {
 
 export default function DailyExpenses() {
   const { categories } = useCategories('daily');
+  const { refreshKey, refresh } = useDataRefresh();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -36,7 +38,7 @@ export default function DailyExpenses() {
 
   useEffect(() => {
     loadExpenses();
-  }, []);
+  }, [refreshKey]);
 
   useEffect(() => {
     if (categories.length > 0 && !category) setCategory(categories[0].name);
@@ -57,7 +59,7 @@ export default function DailyExpenses() {
       setDescription('');
       setTagsInput('');
       setShowForm(false);
-      loadExpenses();
+      refresh();
     } catch (err) {
       console.error(err);
     }
@@ -66,7 +68,7 @@ export default function DailyExpenses() {
   const handleDelete = async (id: string) => {
     try {
       await api.delete(`/daily-expenses/${id}`);
-      loadExpenses();
+      refresh();
     } catch (err) {
       console.error(err);
     }

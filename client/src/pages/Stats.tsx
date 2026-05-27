@@ -4,6 +4,7 @@ import api from '../api/client';
 import Calendar from '../components/Calendar';
 import DayDetailModal from '../components/DayDetailModal';
 import { useCategories } from '../hooks/useCategories';
+import { useDataRefresh } from '../context/DataContext';
 
 interface MonthlyStats {
   year: number;
@@ -70,6 +71,7 @@ const FALLBACK_COLORS = ['#19C37D', '#4ADEDE', '#FBBF24', '#FF5D73', '#A78BFA', 
 
 export default function Stats() {
   const { categories } = useCategories('daily');
+  const { refreshKey } = useDataRefresh();
   const [stats, setStats] = useState<MonthlyStats | null>(null);
   const [calendar, setCalendar] = useState<CalendarData | null>(null);
   const [compare, setCompare] = useState<CompareData | null>(null);
@@ -103,7 +105,7 @@ export default function Stats() {
   useEffect(() => {
     reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, refreshKey]);
 
   const getCategoryColor = (name: string, fallbackIndex = 0) => {
     return categories.find((c) => c.name === name)?.color || FALLBACK_COLORS[fallbackIndex % FALLBACK_COLORS.length];

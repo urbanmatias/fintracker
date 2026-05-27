@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import { useCategories } from '../hooks/useCategories';
+import { useDataRefresh } from '../context/DataContext';
 
 interface Recurring {
   id: string;
@@ -13,6 +14,7 @@ interface Recurring {
 
 export default function RecurringExpenses() {
   const { categories } = useCategories('daily');
+  const { refresh } = useDataRefresh();
   const [items, setItems] = useState<Recurring[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -59,6 +61,7 @@ export default function RecurringExpenses() {
     if (!confirm('¿Registrar este gasto recurrente para hoy?')) return;
     try {
       await api.post(`/recurring-expenses/${id}/generate`, {});
+      refresh();
       alert('Gasto registrado ✓');
     } catch (err) {
       console.error(err);
