@@ -25,8 +25,8 @@ export default function Layout() {
   return (
     <div className="min-h-screen flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-surface border-r border-white/10 flex flex-col">
-        <div className="p-6 border-b border-white/10">
+      <aside className="w-64 backdrop-blur-xl bg-white/[0.04] border-r border-white/[0.08] flex flex-col">
+        <div className="p-6 border-b border-white/[0.08]">
           <h1 className="text-xl font-bold text-primary">💰 FinTracker</h1>
         </div>
 
@@ -36,10 +36,10 @@ export default function Layout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `block px-4 py-2.5 rounded-lg transition-colors ${
+                `block px-4 py-2.5 rounded-xl transition-all ${
                   isActive
-                    ? 'bg-primary/20 text-primary font-medium'
-                    : 'text-white/70 hover:bg-white/5 hover:text-white'
+                    ? 'bg-primary/15 text-primary font-medium backdrop-blur-sm'
+                    : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80'
                 }`
               }
             >
@@ -48,11 +48,11 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/10">
-          <div className="text-sm text-white/50 mb-2">{user?.name}</div>
+        <div className="p-4 border-t border-white/[0.08]">
+          <div className="text-sm text-white/40 mb-2">{user?.name}</div>
           <button
             onClick={handleLogout}
-            className="w-full px-4 py-2 text-sm text-danger hover:bg-danger/10 rounded-lg transition-colors"
+            className="w-full px-4 py-2 text-sm text-danger/80 hover:bg-danger/10 rounded-xl transition-colors"
           >
             Cerrar sesión
           </button>

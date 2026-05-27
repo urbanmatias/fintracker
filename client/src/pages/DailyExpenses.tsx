@@ -70,7 +70,7 @@ export default function DailyExpenses() {
     }
   };
 
-  if (loading) return <div className="animate-pulse text-white/50">Cargando...</div>;
+  if (loading) return <div className="animate-pulse text-white/40">Cargando...</div>;
 
   return (
     <div className="space-y-6">
@@ -78,35 +78,35 @@ export default function DailyExpenses() {
         <h1 className="text-2xl font-bold">Gastos Diarios</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg font-medium transition-colors"
+          className="px-4 py-2 bg-primary/80 hover:bg-primary rounded-xl font-medium transition-all backdrop-blur-sm"
         >
           {showForm ? 'Cancelar' : '+ Nuevo gasto'}
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-surface rounded-xl p-6 border border-white/10 space-y-4">
+        <form onSubmit={handleSubmit} className="backdrop-blur-xl bg-white/[0.05] rounded-2xl p-6 border border-white/[0.08] space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="amount" className="block text-sm text-white/70 mb-1">Monto</label>
+              <label htmlFor="amount" className="block text-sm text-white/50 mb-1">Monto</label>
               <input
                 id="amount"
                 type="number"
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface-light border border-white/10 rounded-lg focus:outline-none focus:border-primary text-white"
+                className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/[0.1] rounded-xl focus:outline-none focus:border-primary/50 text-white placeholder-white/20"
                 placeholder="0.00"
                 required
               />
             </div>
             <div>
-              <label htmlFor="category" className="block text-sm text-white/70 mb-1">Categoría</label>
+              <label htmlFor="category" className="block text-sm text-white/50 mb-1">Categoría</label>
               <select
                 id="category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface-light border border-white/10 rounded-lg focus:outline-none focus:border-primary text-white"
+                className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/[0.1] rounded-xl focus:outline-none focus:border-primary/50 text-white"
               >
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -116,31 +116,31 @@ export default function DailyExpenses() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="description" className="block text-sm text-white/70 mb-1">Descripción</label>
+              <label htmlFor="description" className="block text-sm text-white/50 mb-1">Descripción</label>
               <input
                 id="description"
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface-light border border-white/10 rounded-lg focus:outline-none focus:border-primary text-white"
+                className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/[0.1] rounded-xl focus:outline-none focus:border-primary/50 text-white placeholder-white/20"
                 placeholder="¿En qué gastaste?"
                 required
               />
             </div>
             <div>
-              <label htmlFor="date" className="block text-sm text-white/70 mb-1">Fecha</label>
+              <label htmlFor="date" className="block text-sm text-white/50 mb-1">Fecha</label>
               <input
                 id="date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface-light border border-white/10 rounded-lg focus:outline-none focus:border-primary text-white"
+                className="w-full px-4 py-2.5 bg-white/[0.06] border border-white/[0.1] rounded-xl focus:outline-none focus:border-primary/50 text-white"
               />
             </div>
           </div>
           <button
             type="submit"
-            className="px-6 py-2.5 bg-primary hover:bg-primary-dark rounded-lg font-medium transition-colors"
+            className="px-6 py-2.5 bg-primary/80 hover:bg-primary rounded-xl font-medium transition-all"
           >
             Guardar
           </button>
@@ -148,16 +148,16 @@ export default function DailyExpenses() {
       )}
 
       {/* Expenses list */}
-      <div className="bg-surface rounded-xl border border-white/10 overflow-hidden">
+      <div className="backdrop-blur-xl bg-white/[0.05] rounded-2xl border border-white/[0.08] overflow-hidden">
         {expenses.length === 0 ? (
-          <p className="p-6 text-white/50 text-center">No hay gastos este mes</p>
+          <p className="p-6 text-white/40 text-center">No hay gastos este mes</p>
         ) : (
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-white/[0.05]">
             {expenses.map((expense) => (
-              <div key={expense.id} className="flex justify-between items-center p-4 hover:bg-white/5">
+              <div key={expense.id} className="flex justify-between items-center p-4 hover:bg-white/[0.03] transition-colors">
                 <div className="flex-1">
                   <p className="font-medium">{expense.description}</p>
-                  <p className="text-xs text-white/40">
+                  <p className="text-xs text-white/30">
                     {expense.category} • {new Date(expense.date).toLocaleDateString('es-AR')}
                   </p>
                 </div>
@@ -167,7 +167,7 @@ export default function DailyExpenses() {
                   </p>
                   <button
                     onClick={() => handleDelete(expense.id)}
-                    className="text-white/30 hover:text-danger transition-colors"
+                    className="text-white/20 hover:text-danger transition-colors"
                     aria-label="Eliminar gasto"
                   >
                     ✕

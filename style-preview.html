@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinTracker - Style Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #111; color: #fff; }
+    
+    .style-selector {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #000;
+      padding: 16px 32px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      z-index: 1000;
+      border-bottom: 1px solid #333;
+    }
+    .style-selector span { font-size: 14px; color: #888; }
+    .style-selector button {
+      padding: 8px 16px;
+      border: 1px solid #444;
+      background: transparent;
+      color: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .style-selector button:hover { border-color: #888; }
+    .style-selector button.active { background: #fff; color: #000; border-color: #fff; }
+
+    .preview { padding-top: 80px; min-height: 100vh; transition: all 0.3s; }
+
+    /* ============================================ */
+    /* STYLE 1: Dark Minimal (Current) */
+    /* ============================================ */
+    .style-1 { background: #11111b; }
+    .style-1 .sidebar { background: #1e1e2e; border-right: 1px solid rgba(255,255,255,0.06); }
+    .style-1 .logo { color: #6366f1; font-weight: 700; font-size: 18px; }
+    .style-1 .nav-item { color: rgba(255,255,255,0.5); padding: 10px 16px; border-radius: 8px; font-size: 14px; }
+    .style-1 .nav-item.active { background: rgba(99,102,241,0.15); color: #6366f1; }
+    .style-1 .card { background: #1e1e2e; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 24px; }
+    .style-1 .card-label { color: rgba(255,255,255,0.4); font-size: 12px; }
+    .style-1 .card-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+    .style-1 .accent { color: #6366f1; }
+    .style-1 .success { color: #10b981; }
+    .style-1 .danger { color: #ef4444; }
+    .style-1 .progress-bg { background: rgba(255,255,255,0.08); border-radius: 99px; height: 10px; }
+    .style-1 .progress-fill { background: #10b981; border-radius: 99px; height: 10px; }
+    .style-1 .btn { background: #6366f1; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; }
+
+    /* ============================================ */
+    /* STYLE 2: Light Clean */
+    /* ============================================ */
+    .style-2 { background: #f8f9fa; color: #1a1a2e; }
+    .style-2 .sidebar { background: #fff; border-right: 1px solid #e9ecef; }
+    .style-2 .logo { color: #1a1a2e; font-weight: 800; font-size: 18px; letter-spacing: -0.5px; }
+    .style-2 .nav-item { color: #6c757d; padding: 10px 16px; border-radius: 8px; font-size: 14px; }
+    .style-2 .nav-item.active { background: #f0f0ff; color: #4f46e5; font-weight: 500; }
+    .style-2 .card { background: #fff; border: 1px solid #e9ecef; border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .style-2 .card-label { color: #6c757d; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .style-2 .card-value { font-size: 28px; font-weight: 800; margin-top: 4px; color: #1a1a2e; }
+    .style-2 .accent { color: #4f46e5; }
+    .style-2 .success { color: #059669; }
+    .style-2 .danger { color: #dc2626; }
+    .style-2 .progress-bg { background: #e9ecef; border-radius: 99px; height: 8px; }
+    .style-2 .progress-fill { background: #059669; border-radius: 99px; height: 8px; }
+    .style-2 .btn { background: #4f46e5; color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; }
+
+    /* ============================================ */
+    /* STYLE 3: Glassmorphism */
+    /* ============================================ */
+    .style-3 { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); }
+    .style-3 .sidebar { background: rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(20px); }
+    .style-3 .logo { color: #a78bfa; font-weight: 700; font-size: 18px; }
+    .style-3 .nav-item { color: rgba(255,255,255,0.5); padding: 10px 16px; border-radius: 10px; font-size: 14px; }
+    .style-3 .nav-item.active { background: rgba(167,139,250,0.15); color: #a78bfa; backdrop-filter: blur(10px); }
+    .style-3 .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; backdrop-filter: blur(20px); }
+    .style-3 .card-label { color: rgba(255,255,255,0.4); font-size: 12px; }
+    .style-3 .card-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+    .style-3 .accent { color: #a78bfa; }
+    .style-3 .success { color: #34d399; }
+    .style-3 .danger { color: #f87171; }
+    .style-3 .progress-bg { background: rgba(255,255,255,0.08); border-radius: 99px; height: 10px; }
+    .style-3 .progress-fill { background: linear-gradient(90deg, #a78bfa, #34d399); border-radius: 99px; height: 10px; }
+    .style-3 .btn { background: rgba(167,139,250,0.3); color: #fff; border: 1px solid rgba(167,139,250,0.4); padding: 10px 20px; border-radius: 10px; font-size: 14px; backdrop-filter: blur(10px); }
+
+    /* ============================================ */
+    /* STYLE 4: Brutalist / Neo */
+    /* ============================================ */
+    .style-4 { background: #fffef5; color: #000; font-family: 'JetBrains Mono', 'SF Mono', monospace; }
+    .style-4 .sidebar { background: #000; border-right: none; }
+    .style-4 .sidebar * { color: #fff !important; }
+    .style-4 .logo { color: #fff; font-weight: 900; font-size: 16px; text-transform: uppercase; letter-spacing: 2px; }
+    .style-4 .nav-item { color: rgba(255,255,255,0.6); padding: 10px 16px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+    .style-4 .nav-item.active { color: #fff; background: none; border-left: 3px solid #fff; padding-left: 13px; }
+    .style-4 .card { background: #fff; border: 2px solid #000; border-radius: 0; padding: 24px; box-shadow: 4px 4px 0 #000; }
+    .style-4 .card-label { color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; }
+    .style-4 .card-value { font-size: 32px; font-weight: 900; margin-top: 4px; color: #000; }
+    .style-4 .accent { color: #000; }
+    .style-4 .success { color: #16a34a; }
+    .style-4 .danger { color: #dc2626; }
+    .style-4 .progress-bg { background: #e5e5e5; border-radius: 0; height: 12px; border: 1px solid #000; }
+    .style-4 .progress-fill { background: #000; border-radius: 0; height: 12px; }
+    .style-4 .btn { background: #000; color: #fff; border: none; padding: 12px 24px; border-radius: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+
+    /* ============================================ */
+    /* STYLE 5: Soft Gradient / Modern SaaS */
+    /* ============================================ */
+    .style-5 { background: #fafbff; color: #1e293b; }
+    .style-5 .sidebar { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-right: none; }
+    .style-5 .sidebar * { color: #fff !important; }
+    .style-5 .logo { color: #fff; font-weight: 700; font-size: 18px; }
+    .style-5 .nav-item { color: rgba(255,255,255,0.5); padding: 10px 16px; border-radius: 8px; font-size: 14px; }
+    .style-5 .nav-item.active { background: rgba(99,102,241,0.2); color: #fff; }
+    .style-5 .card { background: #fff; border: none; border-radius: 20px; padding: 28px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+    .style-5 .card-label { color: #64748b; font-size: 13px; }
+    .style-5 .card-value { font-size: 30px; font-weight: 800; margin-top: 4px; color: #1e293b; }
+    .style-5 .accent { color: #6366f1; }
+    .style-5 .success { color: #10b981; }
+    .style-5 .danger { color: #f43f5e; }
+    .style-5 .progress-bg { background: #e2e8f0; border-radius: 99px; height: 10px; }
+    .style-5 .progress-fill { background: linear-gradient(90deg, #6366f1, #8b5cf6); border-radius: 99px; height: 10px; }
+    .style-5 .btn { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+
+    /* ============================================ */
+    /* LAYOUT (shared) */
+    /* ============================================ */
+    .app-layout { display: flex; min-height: calc(100vh - 80px); }
+    .sidebar { width: 240px; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px; }
+    .sidebar .logo { padding: 0 16px 20px; }
+    .main-content { flex: 1; padding: 40px; }
+    .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .progress-section { margin-bottom: 24px; }
+    .progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+    .distribution { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+    .dist-card { padding: 20px; border-radius: 12px; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+    .header-row h1 { font-size: 22px; font-weight: 700; }
+    .header-row p { font-size: 14px; opacity: 0.5; }
+  </style>
+</head>
+<body>
+  <div class="style-selector">
+    <span>Estilo:</span>
+    <button class="active" onclick="setStyle(1)">1. Dark Minimal</button>
+    <button onclick="setStyle(2)">2. Light Clean</button>
+    <button onclick="setStyle(3)">3. Glassmorphism</button>
+    <button onclick="setStyle(4)">4. Brutalist</button>
+    <button onclick="setStyle(5)">5. Modern SaaS</button>
+  </div>
+
+  <div class="preview style-1" id="preview">
+    <div class="app-layout">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="logo">💰 FinTracker</div>
+        <div class="nav-item active">Dashboard</div>
+        <div class="nav-item">Gastos</div>
+        <div class="nav-item">Gastos Fijos</div>
+        <div class="nav-item">Estadísticas</div>
+        <div class="nav-item">Configuración</div>
+      </div>
+
+      <!-- Main -->
+      <div class="main-content">
+        <div class="header-row">
+          <div>
+            <h1>Hola, Matías 👋</h1>
+            <p>Resumen de hoy</p>
+          </div>
+          <button class="btn">+ Nuevo gasto</button>
+        </div>
+
+        <!-- Cards -->
+        <div class="cards-grid">
+          <div class="card">
+            <div class="card-label">Presupuesto diario</div>
+            <div class="card-value accent">$12,450.00</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Gastado hoy</div>
+            <div class="card-value danger">$4,200.00</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Restante</div>
+            <div class="card-value success">$8,250.00</div>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="card">
+          <div class="progress-section">
+            <div class="progress-header">
+              <span style="opacity:0.5">Uso del presupuesto</span>
+              <span>34%</span>
+            </div>
+            <div class="progress-bg">
+              <div class="progress-fill" style="width: 34%"></div>
+            </div>
+          </div>
+
+          <!-- Distribution -->
+          <div style="margin-top: 24px;">
+            <p style="font-weight: 600; margin-bottom: 16px;">Si no gastás más hoy:</p>
+            <div class="distribution">
+              <div class="card" style="background: rgba(99,102,241,0.08);">
+                <div class="card-label">A inversión (75%)</div>
+                <div class="card-value accent" style="font-size: 22px;">$6,187.50</div>
+                <div style="font-size: 11px; opacity: 0.4; margin-top: 4px;">CEDEARs en IOL</div>
+              </div>
+              <div class="card" style="background: rgba(16,185,129,0.08);">
+                <div class="card-label">Queda en cuenta (25%)</div>
+                <div class="card-value success" style="font-size: 22px;">$2,062.50</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent expenses -->
+        <div class="card" style="margin-top: 16px;">
+          <p style="font-weight: 600; margin-bottom: 16px;">Gastos de hoy</p>
+          <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(128,128,128,0.15);">
+            <div>
+              <div style="font-size: 14px; font-weight: 500;">Almuerzo</div>
+              <div style="font-size: 12px; opacity: 0.4;">Comida</div>
+            </div>
+            <div class="danger" style="font-weight: 600;">-$2,500.00</div>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(128,128,128,0.15);">
+            <div>
+              <div style="font-size: 14px; font-weight: 500;">Subte</div>
+              <div style="font-size: 12px; opacity: 0.4;">Transporte</div>
+            </div>
+            <div class="danger" style="font-weight: 600;">-$650.00</div>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 12px 0;">
+            <div>
+              <div style="font-size: 14px; font-weight: 500;">Café</div>
+              <div style="font-size: 12px; opacity: 0.4;">Comida</div>
+            </div>
+            <div class="danger" style="font-weight: 600;">-$1,050.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setStyle(n) {
+      const preview = document.getElementById('preview');
+      preview.className = 'preview style-' + n;
+      document.querySelectorAll('.style-selector button').forEach((btn, i) => {
+        btn.classList.toggle('active', i === n - 1);
+      });
+    }
+  </script>
+</body>
+</html>
