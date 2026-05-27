@@ -1,5 +1,5 @@
 [build]
-builder = "nixpacks"
+builder = "RAILPACK"
 buildCommand = "cd client && npm ci && npm run build && cd ../server && npm ci && npm run build"
 
 [deploy]
