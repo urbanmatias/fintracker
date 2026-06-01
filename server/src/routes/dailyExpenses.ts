@@ -159,9 +159,6 @@ router.post('/close-day', authenticate, async (req: AuthRequest, res: Response) 
       toInvestment = surplus * investmentPercent;
       toExcedent = surplus * savingsPercent;
     }
-      toInvestment = surplus * investmentPercent;
-      toExcedent = surplus * savingsPercent;
-    }
 
     const newExcedentBalance = excedentBalance + toExcedent - fromExcedent;
 
