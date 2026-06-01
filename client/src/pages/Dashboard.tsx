@@ -154,7 +154,7 @@ export default function Dashboard() {
             <p className="text-[11px] text-text-muted">Excedente</p>
           </div>
           <p className="money text-base md:text-lg font-bold text-warning truncate">
-            ${today?.excedent_balance.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || '0'}
+            ${(today?.excedent_after_today ?? today?.excedent_balance ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
           </p>
         </div>
 
