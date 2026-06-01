@@ -5,7 +5,7 @@ import api from '../api/client';
 import AnimatedNumber from '../components/AnimatedNumber';
 import InsightCards, { type Insight } from '../components/InsightCard';
 import EmptyState from '../components/EmptyState';
-import { Settings as SettingsIcon, TrendingUp, Wallet, PiggyBank, ArrowRight } from 'lucide-react';
+import { Settings as SettingsIcon, TrendingUp, Wallet, PiggyBank, ArrowRight, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface TodaySummary {
@@ -36,7 +36,7 @@ const greetings = ['Hola', '¿Cómo va?', 'Buenas', '¿Qué tal?'];
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { refreshKey } = useDataRefresh();
+  const { refreshKey, refresh } = useDataRefresh();
   const [today, setToday] = useState<TodaySummary | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -219,14 +219,31 @@ export default function Dashboard() {
           <h3 className="font-semibold text-sm mb-3">Gastos de hoy · {today.expenses.length}</h3>
           <div className="space-y-1">
             {today.expenses.map((expense) => (
-              <div key={expense.id} className="flex justify-between items-center py-3 border-b border-border last:border-0">
+              <div key={expense.id} className="flex justify-between items-center py-3 border-b border-border last:border-0 group">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{expense.description}</p>
                   <p className="text-[11px] text-text-muted mt-0.5">{expense.category}</p>
                 </div>
-                <p className="money text-danger font-semibold text-sm ml-3">
-                  -${Number(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                </p>
+                <div className="flex items-center gap-3 ml-3">
+                  <p className="money text-danger font-semibold text-sm">
+                    -${Number(expense.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  </p>
+                  <button
+                    onClick={async () => {
+                      if (!confirm('¿Eliminar este gasto?')) return;
+                      try {
+                        await api.delete(`/daily-expenses/${expense.id}`);
+                        refresh();
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    }}
+                    className="text-text-muted/40 hover:text-danger transition-colors w-7 h-7 flex items-center justify-center rounded-md hover:bg-danger/10"
+                    aria-label="Eliminar gasto"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
