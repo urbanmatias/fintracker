@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   Plus,
+  TrendingUp,
 } from 'lucide-react';
 
 export default function Layout() {
@@ -36,6 +37,7 @@ export default function Layout() {
     { to: '/fixed-expenses', label: 'Gastos Fijos', icon: Pin },
     { to: '/recurring-expenses', label: 'Recurrentes', icon: Repeat },
     { to: '/categories', label: 'Categorías', icon: Tag },
+    { to: '/investments', label: 'Inversiones', icon: TrendingUp },
     { to: '/stats', label: 'Estadísticas', icon: BarChart3 },
     { to: '/settings', label: 'Configuración', icon: Settings },
   ];
