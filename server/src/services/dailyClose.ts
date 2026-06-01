@@ -78,7 +78,8 @@ export async function autoCloseDays(userId: string): Promise<number> {
     let fromExcedent = 0;
 
     if (overBudget) {
-      fromExcedent = Math.min(Math.abs(surplus), excedentBalance);
+      // Spent more than budget, full overspend comes from excedent (can go negative)
+      fromExcedent = Math.abs(surplus);
     } else {
       toInvestment = surplus * investmentPercent;
       toExcedent = surplus * savingsPercent;

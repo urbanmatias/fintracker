@@ -96,8 +96,8 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response) => {
     const toExcedent = savedToday * savingsPercent;
     const toInvestment = savedToday * investmentPercent;
 
-    // If over budget, how much comes from excedent
-    const fromExcedent = overBudget ? Math.min(overAmount, excedentBalance) : 0;
+    // If over budget, the full overspend comes from excedent (can go negative)
+    const fromExcedent = overBudget ? overAmount : 0;
     const currentExcedent = excedentBalance + toExcedent - fromExcedent;
 
     // Effective available = daily budget + excedent balance (what you can actually spend)
@@ -152,10 +152,13 @@ router.post('/close-day', authenticate, async (req: AuthRequest, res: Response) 
     let fromExcedent = 0;
 
     if (overBudget) {
-      // Spent more than budget, take from excedent
-      fromExcedent = Math.min(Math.abs(surplus), excedentBalance);
+      // Spent more than budget, full overspend comes from excedent (can go negative)
+      fromExcedent = Math.abs(surplus);
     } else {
       // Saved money, distribute
+      toInvestment = surplus * investmentPercent;
+      toExcedent = surplus * savingsPercent;
+    }
       toInvestment = surplus * investmentPercent;
       toExcedent = surplus * savingsPercent;
     }

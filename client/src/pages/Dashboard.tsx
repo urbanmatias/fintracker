@@ -148,12 +148,12 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="bg-surface rounded-2xl p-4 border border-warning/25 lift">
+        <div className={`bg-surface rounded-2xl p-4 border lift ${(today?.excedent_after_today ?? 0) < 0 ? 'border-danger/40' : 'border-warning/25'}`}>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <PiggyBank className="w-3.5 h-3.5 text-warning" />
+            <PiggyBank className={`w-3.5 h-3.5 ${(today?.excedent_after_today ?? 0) < 0 ? 'text-danger' : 'text-warning'}`} />
             <p className="text-[11px] text-text-muted">Excedente</p>
           </div>
-          <p className="money text-base md:text-lg font-bold text-warning truncate">
+          <p className={`money text-base md:text-lg font-bold truncate ${(today?.excedent_after_today ?? 0) < 0 ? 'text-danger' : 'text-warning'}`}>
             ${(today?.excedent_after_today ?? today?.excedent_balance ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
           </p>
         </div>
@@ -178,11 +178,6 @@ export default function Dashboard() {
           {today.from_excedent > 0 && (
             <p className="text-text-muted text-xs mt-1">
               Se descuentan ${today.from_excedent.toLocaleString('es-AR', { minimumFractionDigits: 2 })} de tu excedente
-            </p>
-          )}
-          {today.over_amount > today.excedent_balance && (
-            <p className="text-danger/80 text-xs mt-1">
-              ⚡ El excedente no cubre el exceso de hoy
             </p>
           )}
         </div>
