@@ -3,6 +3,7 @@ import api from '../api/client';
 import { useCategories } from '../hooks/useCategories';
 import { useDataRefresh } from '../context/DataContext';
 import { useToast } from '../context/ToastContext';
+import { useHaptic } from '../hooks/useHaptic';
 
 interface QuickAddModalProps {
   onClose: () => void;
@@ -13,6 +14,7 @@ export default function QuickAddModal({ onClose, onSaved }: QuickAddModalProps) 
   const { categories, loading: catsLoading } = useCategories('daily');
   const { refresh } = useDataRefresh();
   const toast = useToast();
+  const haptic = useHaptic();
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -69,6 +71,7 @@ export default function QuickAddModal({ onClose, onSaved }: QuickAddModalProps) 
       });
       refresh();
       toast.success('Gasto guardado');
+      haptic.trigger('success');
       onSaved();
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: string } } };

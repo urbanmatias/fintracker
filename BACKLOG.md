@@ -80,16 +80,16 @@ Roadmap de features pendientes y mejoras. Marcá con `[x]` cuando estén hechas.
 
 ## 👤 UX y onboarding
 
-- [ ] **Onboarding wizard** al primer login (3 pasos: ingreso → gastos fijos → distribución)
+- [x] **Onboarding wizard** al primer login (3 pasos: ingreso → gastos fijos → distribución)
 - [ ] **Tour guiado** de las features para usuarios nuevos
-- [ ] **Modo claro / oscuro toggle** además del dark actual
+- [x] **Modo claro / oscuro toggle** además del dark actual
 - [ ] **Modo OLED** verdadero negro `#000` para ahorro de batería en mobile
 - [ ] **Modo compacto** para usuarios power
-- [ ] **Pull to refresh** en mobile con animación custom
-- [ ] **Swipe to delete/edit** en lista de gastos
-- [ ] **Haptic feedback** en mobile (Vibration API)
-- [ ] **Skeleton loaders** en todas las páginas (algunos ya están)
-- [ ] **Optimistic UI**: gasto aparece instantáneo aunque la red tarde
+- [x] **Pull to refresh** en mobile con animación custom
+- [x] **Swipe to delete/edit** en lista de gastos
+- [x] **Haptic feedback** en mobile (Vibration API)
+- [x] **Skeleton loaders** en todas las páginas (algunos ya están)
+- [x] **Optimistic UI**: gasto aparece instantáneo aunque la red tarde
 
 ---
 

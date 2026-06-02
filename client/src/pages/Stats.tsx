@@ -112,12 +112,19 @@ export default function Stats() {
   };
 
   if (loading) return (
-    <div className="space-y-4">
-      <div className="h-12 bg-surface rounded-xl animate-pulse"></div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[0,1,2,3].map((i) => <div key={i} className="h-20 bg-surface rounded-xl animate-pulse"></div>)}
+    <div className="space-y-5 md:space-y-6">
+      <div className="flex justify-between gap-3">
+        <div className="h-8 bg-border/40 rounded-md w-40 animate-pulse hidden md:block"></div>
+        <div className="flex gap-2 ml-auto">
+          <div className="h-9 w-24 bg-border/40 rounded-[10px] animate-pulse"></div>
+          <div className="h-9 w-20 bg-border/40 rounded-[10px] animate-pulse"></div>
+        </div>
       </div>
-      <div className="h-64 bg-surface rounded-xl animate-pulse"></div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[0,1,2,3].map((i) => <div key={i} className="h-20 bg-surface border border-border rounded-xl animate-pulse"></div>)}
+      </div>
+      <div className="h-64 bg-surface border border-border rounded-xl animate-pulse"></div>
+      <div className="h-48 bg-surface border border-border rounded-xl animate-pulse"></div>
     </div>
   );
   if (!stats) return <div className="text-text-muted">No hay datos para este período</div>;

@@ -19,11 +19,13 @@ import {
   Newspaper,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import { useHaptic } from '../hooks/useHaptic';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const haptic = useHaptic();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
@@ -162,6 +164,7 @@ export default function Layout() {
               <NavLink
                 key={item.to}
                 to={item.to}
+                onClick={() => haptic.trigger('light')}
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center flex-1 py-2 rounded-lg transition-colors ${
                     isActive ? 'text-primary' : 'text-text-muted'
@@ -174,7 +177,10 @@ export default function Layout() {
             );
           })}
           <button
-            onClick={() => setQuickAddOpen(true)}
+            onClick={() => {
+              haptic.trigger('medium');
+              setQuickAddOpen(true);
+            }}
             className="flex flex-col items-center justify-center flex-1 py-2 rounded-lg text-text-muted"
             aria-label="Agregar gasto"
           >
