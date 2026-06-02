@@ -1,6 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
+import Onboarding from './components/Onboarding';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
@@ -23,48 +27,66 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
+  const { user } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const completed = localStorage.getItem('onboarding_completed');
+    if (!completed && (!user.monthly_income || Number(user.monthly_income) <= 0)) {
+      setShowOnboarding(true);
+    }
+  }, [user]);
+
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Dashboard />} />
-        <Route path="expenses" element={<DailyExpenses />} />
-        <Route path="fixed-expenses" element={<FixedExpenses />} />
-        <Route path="recurring-expenses" element={<RecurringExpenses />} />
-        <Route path="categories" element={<Categories />} />
-        <Route path="investments" element={<Investments />} />
-        <Route path="news" element={<News />} />
-        <Route path="stats" element={<Stats />} />
-        <Route path="settings" element={<Settings />} />
+    <>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route
-          path="admin"
+          path="/"
           element={
-            <AdminRoute>
-              <Admin />
-            </AdminRoute>
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
           }
-        />
-      </Route>
-    </Routes>
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="expenses" element={<DailyExpenses />} />
+          <Route path="fixed-expenses" element={<FixedExpenses />} />
+          <Route path="recurring-expenses" element={<RecurringExpenses />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="investments" element={<Investments />} />
+          <Route path="news" element={<News />} />
+          <Route path="stats" element={<Stats />} />
+          <Route path="settings" element={<Settings />} />
+          <Route
+            path="admin"
+            element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            }
+          />
+        </Route>
+      </Routes>
+      {showOnboarding && <Onboarding onComplete={() => setShowOnboarding(false)} />}
+    </>
   );
 }
 
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <DataProvider>
-          <AppRoutes />
-        </DataProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <DataProvider>
+            <ToastProvider>
+              <AppRoutes />
+            </ToastProvider>
+          </DataProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

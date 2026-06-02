@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDataRefresh } from '../context/DataContext';
+import { useToast } from '../context/ToastContext';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import api from '../api/client';
 import AnimatedNumber from '../components/AnimatedNumber';
 import InsightCards, { type Insight } from '../components/InsightCard';
 import EmptyState from '../components/EmptyState';
-import { Settings as SettingsIcon, TrendingUp, Wallet, PiggyBank, ArrowRight, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, TrendingUp, Wallet, PiggyBank, ArrowRight, Trash2, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface TodaySummary {
@@ -37,21 +39,34 @@ const greetings = ['Hola', '¿Cómo va?', 'Buenas', '¿Qué tal?'];
 export default function Dashboard() {
   const { user } = useAuth();
   const { refreshKey, refresh } = useDataRefresh();
+  const toast = useToast();
   const [today, setToday] = useState<TodaySummary | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.get('/daily-expenses/today')
-      .then((res) => setToday(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-
-    // Insights are non-critical - don't block the dashboard if they fail
+  const loadAll = async () => {
+    try {
+      const t = await api.get('/daily-expenses/today');
+      setToday(t.data);
+    } catch (err) {
+      console.error(err);
+    }
     api.get('/insights')
       .then((res) => setInsights(res.data.insights || []))
       .catch((err) => console.error('Insights failed:', err));
+  };
+
+  useEffect(() => {
+    loadAll().finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
+
+  const { pulling, refreshing, pullDistance, isReady } = usePullToRefresh({
+    onRefresh: async () => {
+      await loadAll();
+      refresh();
+    },
+  });
 
   if (loading) {
     return (
@@ -97,6 +112,19 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5 md:space-y-6 fade-in-stagger">
+      {/* Pull to refresh hint */}
+      {(pulling || refreshing) && (
+        <div
+          className="flex items-center justify-center text-text-muted text-xs gap-2 -mt-2"
+          style={{
+            height: refreshing ? 40 : pullDistance / 2,
+            transition: refreshing ? 'height 0.2s ease' : 'none',
+          }}
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''} ${isReady && !refreshing ? 'rotate-180' : ''} transition-transform`} />
+          {refreshing ? 'Actualizando...' : isReady ? 'Soltá para actualizar' : 'Tirá para actualizar'}
+        </div>
+      )}
       {/* Hero card - the star of the show */}
       <div className="relative bg-gradient-to-br from-surface to-sidebar border border-border rounded-2xl md:rounded-[20px] p-6 md:p-8 overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
@@ -230,13 +258,47 @@ export default function Dashboard() {
                   </p>
                   <button
                     onClick={async () => {
-                      if (!confirm('¿Eliminar este gasto?')) return;
-                      try {
-                        await api.delete(`/daily-expenses/${expense.id}`);
-                        refresh();
-                      } catch (err) {
-                        console.error(err);
-                      }
+                      if (!today) return;
+                      // Optimistic UI: remove from local state immediately
+                      const removed = expense;
+                      const idx = today.expenses.findIndex((e) => e.id === expense.id);
+                      setToday({
+                        ...today,
+                        expenses: today.expenses.filter((e) => e.id !== expense.id),
+                        total_spent: today.total_spent - Number(expense.amount),
+                        remaining: today.remaining + Number(expense.amount),
+                      });
+
+                      let undone = false;
+                      toast.success('Gasto eliminado', {
+                        onUndo: () => {
+                          undone = true;
+                          setToday((curr) => {
+                            if (!curr) return curr;
+                            const newExpenses = [...curr.expenses];
+                            newExpenses.splice(idx, 0, removed);
+                            return {
+                              ...curr,
+                              expenses: newExpenses,
+                              total_spent: curr.total_spent + Number(removed.amount),
+                              remaining: curr.remaining - Number(removed.amount),
+                            };
+                          });
+                        },
+                      });
+
+                      // Wait for the toast to expire then commit deletion
+                      setTimeout(async () => {
+                        if (undone) return;
+                        try {
+                          await api.delete(`/daily-expenses/${removed.id}`);
+                          refresh();
+                        } catch (err) {
+                          console.error(err);
+                          toast.error('No se pudo eliminar el gasto');
+                          loadAll();
+                        }
+                      }, 5000);
                     }}
                     className="text-text-muted/40 hover:text-danger transition-colors w-7 h-7 flex items-center justify-center rounded-md hover:bg-danger/10"
                     aria-label="Eliminar gasto"

@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Newspaper,
 } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -121,6 +122,7 @@ export default function Layout() {
               <p className="text-xs text-text-muted truncate">{user?.email}</p>
             </div>
           </div>
+          <ThemeToggle className="w-full" />
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-danger/[0.08] rounded-xl transition-colors"
