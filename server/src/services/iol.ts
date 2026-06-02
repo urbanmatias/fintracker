@@ -159,6 +159,7 @@ export async function disconnectIol(userId: string): Promise<void> {
   await db('iol_connections').where({ user_id: userId }).del();
   await db('iol_portfolio').where({ user_id: userId }).del();
   await db('iol_operations').where({ user_id: userId }).del();
+  await db('iol_dividends').where({ user_id: userId }).del();
   await db('portfolio_snapshots').where({ user_id: userId }).del();
 }
 
@@ -476,6 +477,168 @@ export async function getStoredOperations(userId: string, limit = 100): Promise<
     .where({ user_id: userId })
     .orderBy('date', 'desc')
     .limit(limit);
+}
+
+interface IolMovement {
+  numero?: number;
+  fecha?: string;
+  fechaLiquidacion?: string;
+  tipo?: string;
+  descripcion?: string;
+  monto?: number;
+  importe?: number;
+  moneda?: string;
+  simbolo?: string;
+  saldo?: number;
+}
+
+const DIVIDEND_KEYWORDS = [
+  'dividendo',
+  'dividend',
+  'renta',
+  'cobro de cupon',
+  'cobro de cupón',
+  'cupon',
+  'cupón',
+];
+
+function isDividendType(typeOrDesc: string): boolean {
+  const lower = (typeOrDesc || '').toLowerCase();
+  return DIVIDEND_KEYWORDS.some((k) => lower.includes(k));
+}
+
+function extractSymbolFromDescription(desc: string): string | null {
+  if (!desc) return null;
+  // Common formats: "Cobro de Dividendos AAPL", "Pago de Dividendos - GGAL"
+  const match = desc.match(/([A-Z]{2,6}\d?)/g);
+  if (match && match.length > 0) {
+    // Filter out common words that may be uppercase
+    const candidates = match.filter((m) => !['IOL', 'BCBA', 'NYSE', 'USD', 'ARS'].includes(m));
+    return candidates[0] || null;
+  }
+  return null;
+}
+
+/**
+ * Sync the user's account state to find dividend payments.
+ * IOL exposes /api/v2/estadocuenta and /api/v2/operaciones; dividends usually
+ * come as movements in the account state, sometimes with type "Pago de Dividendos".
+ */
+export async function syncDividends(userId: string, daysBack = 365): Promise<{ imported: number }> {
+  const today = new Date();
+  const from = new Date();
+  from.setDate(today.getDate() - daysBack);
+  const fromStr = from.toISOString().split('T')[0];
+  const toStr = today.toISOString().split('T')[0];
+
+  let imported = 0;
+
+  // Try the operations endpoint with all states and filter by type
+  const params = new URLSearchParams({
+    'filtro.estado': 'todas',
+    'filtro.fechaDesde': fromStr,
+    'filtro.fechaHasta': toStr,
+  });
+
+  const ops = await iolFetch<IolOperation[]>(userId, `/api/v2/operaciones?${params.toString()}`).catch(() => [] as IolOperation[]);
+
+  for (const op of ops) {
+    const tipo = op.tipo || '';
+    const desc = (op as IolOperation & { descripcion?: string }).descripcion || '';
+    if (!isDividendType(tipo) && !isDividendType(desc)) continue;
+
+    const numero = op.numero;
+    if (!numero) continue;
+
+    const date = (op.fechaOperada || op.fechaOrden || '').split('T')[0];
+    if (!date) continue;
+
+    const amount = Number(op.montoOperado || op.monto || 0);
+    if (!amount) continue;
+
+    const symbol = op.simbolo || extractSymbolFromDescription(desc) || extractSymbolFromDescription(tipo);
+
+    const existing = await db('iol_dividends')
+      .where({ user_id: userId, iol_movement_id: numero })
+      .first();
+    if (existing) continue;
+
+    await db('iol_dividends').insert({
+      user_id: userId,
+      iol_movement_id: numero,
+      date,
+      symbol,
+      type: tipo,
+      amount,
+      currency: op.moneda || null,
+      description: desc || null,
+      raw_data: JSON.stringify(op),
+    });
+
+    imported++;
+  }
+
+  return { imported };
+}
+
+interface DividendSummary {
+  total: number;
+  by_symbol: Array<{ symbol: string | null; total: number; count: number; last_date: string }>;
+  by_month: Array<{ month: string; total: number }>;
+  recent: Array<{
+    id: string;
+    date: string;
+    symbol: string | null;
+    amount: number;
+    currency: string | null;
+    description: string | null;
+    type: string | null;
+  }>;
+}
+
+export async function getDividendsSummary(userId: string): Promise<DividendSummary> {
+  const dividends = await db('iol_dividends')
+    .where({ user_id: userId })
+    .orderBy('date', 'desc');
+
+  const total = dividends.reduce((s, d) => s + Number(d.amount), 0);
+
+  const bySymbolMap = new Map<string, { total: number; count: number; last_date: string }>();
+  for (const d of dividends) {
+    const sym = d.symbol || 'Otros';
+    const existing = bySymbolMap.get(sym);
+    if (existing) {
+      existing.total += Number(d.amount);
+      existing.count += 1;
+      if (d.date > existing.last_date) existing.last_date = d.date;
+    } else {
+      bySymbolMap.set(sym, { total: Number(d.amount), count: 1, last_date: d.date });
+    }
+  }
+  const by_symbol = Array.from(bySymbolMap.entries())
+    .map(([symbol, data]) => ({ symbol, ...data }))
+    .sort((a, b) => b.total - a.total);
+
+  const byMonthMap = new Map<string, number>();
+  for (const d of dividends) {
+    const m = d.date.toString().substring(0, 7);
+    byMonthMap.set(m, (byMonthMap.get(m) || 0) + Number(d.amount));
+  }
+  const by_month = Array.from(byMonthMap.entries())
+    .map(([month, total]) => ({ month, total }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+
+  const recent = dividends.slice(0, 20).map((d) => ({
+    id: d.id,
+    date: d.date,
+    symbol: d.symbol,
+    amount: Number(d.amount),
+    currency: d.currency,
+    description: d.description,
+    type: d.type,
+  }));
+
+  return { total, by_symbol, by_month, recent };
 }
 
 export async function getSnapshots(userId: string, days = 90): Promise<unknown[]> {

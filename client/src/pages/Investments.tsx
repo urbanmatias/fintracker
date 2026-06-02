@@ -8,6 +8,7 @@ import EmptyState from '../components/EmptyState';
 import InstrumentSearch from '../components/InstrumentSearch';
 import OperationsHistory from '../components/OperationsHistory';
 import PatrimonyChart from '../components/PatrimonyChart';
+import DividendsPanel from '../components/DividendsPanel';
 
 interface Investment {
   id: string;
@@ -154,11 +155,13 @@ export default function Investments() {
       const res = await api.post('/iol/sync', {});
       const imported = res.data.imported || 0;
       const autoCreated = res.data.autoCreated || 0;
-      if (imported > 0 || autoCreated > 0) {
-        setSyncMessage(
-          `${imported} ${imported === 1 ? 'operación nueva importada' : 'operaciones nuevas importadas'}` +
-          (autoCreated > 0 ? `, ${autoCreated} ${autoCreated === 1 ? 'compra registrada como inversión' : 'compras registradas como inversiones'}` : '')
-        );
+      const dividendsImported = res.data.dividends_imported || 0;
+      const parts: string[] = [];
+      if (imported > 0) parts.push(`${imported} ${imported === 1 ? 'operación nueva' : 'operaciones nuevas'}`);
+      if (autoCreated > 0) parts.push(`${autoCreated} ${autoCreated === 1 ? 'inversión registrada' : 'inversiones registradas'}`);
+      if (dividendsImported > 0) parts.push(`${dividendsImported} ${dividendsImported === 1 ? 'dividendo cobrado' : 'dividendos cobrados'}`);
+      if (parts.length > 0) {
+        setSyncMessage(parts.join(' · '));
         setTimeout(() => setSyncMessage(''), 6000);
       }
       loadIol();
@@ -417,6 +420,11 @@ export default function Investments() {
       {/* Patrimony evolution chart */}
       {iolStatus?.connected && (
         <PatrimonyChart refreshKey={internalRefresh} />
+      )}
+
+      {/* Dividends */}
+      {iolStatus?.connected && (
+        <DividendsPanel refreshKey={internalRefresh} />
       )}
 
       {/* Instrument search */}

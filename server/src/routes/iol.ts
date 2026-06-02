@@ -5,6 +5,8 @@ import {
   disconnectIol,
   syncPortfolio,
   syncOperations,
+  syncDividends,
+  getDividendsSummary,
   getConnectionStatus,
   getStoredPortfolio,
   getStoredOperations,
@@ -39,6 +41,7 @@ router.post('/connect', authenticate, async (req: AuthRequest, res: Response) =>
     try {
       await syncPortfolio(req.user!.id);
       await syncOperations(req.user!.id);
+      await syncDividends(req.user!.id);
     } catch (err) {
       console.error('Initial IOL sync failed:', err);
     }
@@ -68,8 +71,13 @@ router.post('/sync', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     await syncPortfolio(req.user!.id);
     const opsResult = await syncOperations(req.user!.id).catch(() => ({ imported: 0, autoCreated: 0 }));
+    const divResult = await syncDividends(req.user!.id).catch(() => ({ imported: 0 }));
     const portfolio = await getStoredPortfolio(req.user!.id);
-    res.json({ portfolio, ...opsResult });
+    res.json({
+      portfolio,
+      ...opsResult,
+      dividends_imported: divResult.imported,
+    });
   } catch (error) {
     if (error instanceof IolApiError) {
       res.status(error.status).json({ error: error.message });
@@ -77,6 +85,16 @@ router.post('/sync', authenticate, async (req: AuthRequest, res: Response) => {
     }
     console.error('IOL sync error:', error);
     res.status(500).json({ error: 'Error al sincronizar con IOL' });
+  }
+});
+
+router.get('/dividends', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const summary = await getDividendsSummary(req.user!.id);
+    res.json(summary);
+  } catch (error) {
+    console.error('IOL dividends error:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
