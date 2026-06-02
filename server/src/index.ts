@@ -17,6 +17,7 @@ import categoriesRoutes from './routes/categories';
 import recurringExpensesRoutes from './routes/recurringExpenses';
 import insightsRoutes from './routes/insights';
 import investmentsRoutes from './routes/investments';
+import iolRoutes from './routes/iol';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,6 +44,7 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/recurring-expenses', recurringExpensesRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/investments', investmentsRoutes);
+app.use('/api/iol', iolRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {
