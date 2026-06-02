@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, X, TrendingUp, TrendingDown } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import api from '../api/client';
+import CompanyNews from './CompanyNews';
 
 interface Instrument {
   simbolo: string;
@@ -265,6 +266,9 @@ export default function InstrumentSearch() {
               <p className="money font-semibold mt-1">${Number(quote.cierreAnterior || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 })}</p>
             </div>
           </div>
+
+          {/* Company news - only for stocks (not local AR ones with weird tickers) */}
+          <CompanyNews symbol={selected.simbolo} />
         </div>
       )}
     </div>

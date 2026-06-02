@@ -14,6 +14,7 @@ import Stats from './pages/Stats';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 import Investments from './pages/Investments';
+import News from './pages/News';
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -40,6 +41,7 @@ function AppRoutes() {
         <Route path="recurring-expenses" element={<RecurringExpenses />} />
         <Route path="categories" element={<Categories />} />
         <Route path="investments" element={<Investments />} />
+        <Route path="news" element={<News />} />
         <Route path="stats" element={<Stats />} />
         <Route path="settings" element={<Settings />} />
         <Route

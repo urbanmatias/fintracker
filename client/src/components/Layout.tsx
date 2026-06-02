@@ -16,6 +16,7 @@ import {
   X,
   Plus,
   TrendingUp,
+  Newspaper,
 } from 'lucide-react';
 
 export default function Layout() {
@@ -38,6 +39,7 @@ export default function Layout() {
     { to: '/recurring-expenses', label: 'Recurrentes', icon: Repeat },
     { to: '/categories', label: 'Categorías', icon: Tag },
     { to: '/investments', label: 'Inversiones', icon: TrendingUp },
+    { to: '/news', label: 'Noticias', icon: Newspaper },
     { to: '/stats', label: 'Estadísticas', icon: BarChart3 },
     { to: '/settings', label: 'Configuración', icon: Settings },
   ];
