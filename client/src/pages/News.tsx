@@ -100,9 +100,16 @@ export default function News() {
           />
         </div>
       ) : loading ? (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="bg-surface rounded-2xl p-4 border border-border h-24 animate-pulse"></div>
+            <div key={i} className="bg-surface rounded-2xl border border-border overflow-hidden">
+              <div className="aspect-[16/9] bg-border/40 animate-pulse"></div>
+              <div className="p-5 space-y-2">
+                <div className="h-5 bg-border/40 rounded animate-pulse"></div>
+                <div className="h-5 bg-border/40 rounded w-4/5 animate-pulse"></div>
+                <div className="h-3 bg-border/30 rounded mt-3 animate-pulse"></div>
+              </div>
+            </div>
           ))}
         </div>
       ) : news.length === 0 ? (
@@ -114,47 +121,53 @@ export default function News() {
           />
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {news.map((item) => (
             <a
               key={item.id}
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block bg-surface rounded-2xl p-4 md:p-5 border border-border hover:border-primary/40 transition-all group"
+              className="block bg-surface rounded-2xl border border-border hover:border-primary/40 transition-all group overflow-hidden flex flex-col"
             >
-              <div className="flex gap-4">
+              <div className="aspect-[16/9] bg-border relative overflow-hidden flex-shrink-0">
                 {item.image ? (
                   <img
                     src={item.image}
                     alt=""
-                    className="w-20 h-20 md:w-28 md:h-28 rounded-xl object-cover flex-shrink-0 bg-border"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.parentElement?.classList.add('show-fallback');
                     }}
                   />
-                ) : (
-                  <div className="w-20 h-20 md:w-28 md:h-28 rounded-xl bg-border flex items-center justify-center flex-shrink-0">
-                    <ImageIcon className="w-6 h-6 text-text-muted/40" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <p className="text-[11px] text-primary font-semibold uppercase tracking-wide">
-                      {item.source}
-                    </p>
-                    <ExternalLink className="w-3.5 h-3.5 text-text-muted/40 group-hover:text-primary transition-colors flex-shrink-0" />
-                  </div>
-                  <h3 className="text-sm md:text-base font-semibold leading-snug mb-1 line-clamp-2 group-hover:text-primary transition-colors">
-                    {item.headline}
-                  </h3>
-                  <p className="text-xs text-text-muted line-clamp-2 mb-2 hidden md:block">
+                ) : null}
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-border/40 to-surface" style={{ display: item.image ? 'none' : 'flex' }}>
+                  <ImageIcon className="w-10 h-10 text-text-muted/30" />
+                </div>
+                <div className="absolute top-3 left-3">
+                  <span className="text-[10px] px-2 py-1 bg-background/80 backdrop-blur text-primary font-bold uppercase tracking-wide rounded-md">
+                    {item.source}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-5 flex-1 flex flex-col">
+                <h3 className="text-base md:text-lg font-semibold leading-snug mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                  {item.headline}
+                </h3>
+                {item.summary && (
+                  <p className="text-sm text-text-muted line-clamp-3 mb-4 flex-1">
                     {item.summary}
                   </p>
+                )}
+                <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-border">
                   <p className="text-[11px] text-text-muted">
                     {timeAgo(item.datetime)}
-                    {item.related && ` · ${item.related.split(',').slice(0, 3).join(', ')}`}
+                    {item.related && ` · ${item.related.split(',').slice(0, 2).join(', ')}`}
                   </p>
+                  <ExternalLink className="w-3.5 h-3.5 text-text-muted/40 group-hover:text-primary transition-colors flex-shrink-0" />
                 </div>
               </div>
             </a>
