@@ -4,8 +4,14 @@ import {
   connectIol,
   disconnectIol,
   syncPortfolio,
+  syncOperations,
   getConnectionStatus,
   getStoredPortfolio,
+  getStoredOperations,
+  getSnapshots,
+  searchInstrument,
+  getQuote,
+  getInstrumentHistory,
   IolApiError,
 } from '../services/iol';
 
@@ -30,9 +36,9 @@ router.post('/connect', authenticate, async (req: AuthRequest, res: Response) =>
     }
 
     await connectIol(req.user!.id, username, password);
-    // Try an initial sync (best effort)
     try {
       await syncPortfolio(req.user!.id);
+      await syncOperations(req.user!.id);
     } catch (err) {
       console.error('Initial IOL sync failed:', err);
     }
@@ -61,8 +67,9 @@ router.post('/disconnect', authenticate, async (req: AuthRequest, res: Response)
 router.post('/sync', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     await syncPortfolio(req.user!.id);
+    const opsResult = await syncOperations(req.user!.id).catch(() => ({ imported: 0, autoCreated: 0 }));
     const portfolio = await getStoredPortfolio(req.user!.id);
-    res.json({ portfolio });
+    res.json({ portfolio, ...opsResult });
   } catch (error) {
     if (error instanceof IolApiError) {
       res.status(error.status).json({ error: error.message });
@@ -80,6 +87,91 @@ router.get('/portfolio', authenticate, async (req: AuthRequest, res: Response) =
   } catch (error) {
     console.error('IOL portfolio error:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+router.get('/operations', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const limit = req.query.limit ? Math.min(Number(req.query.limit), 500) : 100;
+    const operations = await getStoredOperations(req.user!.id, limit);
+    res.json({ operations });
+  } catch (error) {
+    console.error('IOL operations error:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+router.get('/snapshots', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const days = req.query.days ? Math.min(Number(req.query.days), 365) : 90;
+    const snapshots = await getSnapshots(req.user!.id, days);
+    res.json({ snapshots });
+  } catch (error) {
+    console.error('IOL snapshots error:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+router.get('/search', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const q = String(req.query.q || '').trim();
+    if (!q) {
+      res.json({ results: [] });
+      return;
+    }
+    const results = await searchInstrument(req.user!.id, q);
+    res.json({ results });
+  } catch (error) {
+    if (error instanceof IolApiError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+    console.error('IOL search error:', error);
+    res.status(500).json({ error: 'Error al buscar instrumento' });
+  }
+});
+
+router.get('/quote/:market/:symbol', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const market = String(req.params.market);
+    const symbol = String(req.params.symbol);
+    const quote = await getQuote(req.user!.id, market, symbol);
+    res.json(quote);
+  } catch (error) {
+    if (error instanceof IolApiError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+    console.error('IOL quote error:', error);
+    res.status(500).json({ error: 'Error al obtener cotización' });
+  }
+});
+
+router.get('/history/:market/:symbol', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const market = String(req.params.market);
+    const symbol = String(req.params.symbol);
+    const days = req.query.days ? Math.min(Number(req.query.days), 365 * 3) : 90;
+
+    const today = new Date();
+    const from = new Date();
+    from.setDate(today.getDate() - days);
+
+    const history = await getInstrumentHistory(
+      req.user!.id,
+      market,
+      symbol,
+      from.toISOString().split('T')[0],
+      today.toISOString().split('T')[0]
+    );
+    res.json({ history });
+  } catch (error) {
+    if (error instanceof IolApiError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+    console.error('IOL history error:', error);
+    res.status(500).json({ error: 'Error al obtener histórico' });
   }
 });
 

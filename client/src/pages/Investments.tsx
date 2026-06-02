@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Trash2, Target, Wallet, BarChart3, Link2, Unlink, RefreshCw, AlertCircle } from 'lucide-react';
+import { TrendingUp, Trash2, Target, Wallet, BarChart3, Link2, Unlink, RefreshCw, AlertCircle, Sparkles } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useDataRefresh } from '../context/DataContext';
 import EmptyState from '../components/EmptyState';
+import InstrumentSearch from '../components/InstrumentSearch';
+import OperationsHistory from '../components/OperationsHistory';
+import PatrimonyChart from '../components/PatrimonyChart';
 
 interface Investment {
   id: string;
@@ -15,6 +18,8 @@ interface Investment {
   quantity: number | null;
   price_per_unit: number | null;
   platform: string | null;
+  iol_operation_id: number | null;
+  auto_generated: boolean;
 }
 
 interface InvestmentsData {
@@ -61,6 +66,8 @@ export default function Investments() {
   const [iolPassword, setIolPassword] = useState('');
   const [iolError, setIolError] = useState('');
   const [iolLoading, setIolLoading] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
+  const [internalRefresh, setInternalRefresh] = useState(0);
 
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -142,9 +149,21 @@ export default function Investments() {
 
   const handleSyncIol = async () => {
     setIolLoading(true);
+    setSyncMessage('');
     try {
-      await api.post('/iol/sync', {});
+      const res = await api.post('/iol/sync', {});
+      const imported = res.data.imported || 0;
+      const autoCreated = res.data.autoCreated || 0;
+      if (imported > 0 || autoCreated > 0) {
+        setSyncMessage(
+          `${imported} ${imported === 1 ? 'operación nueva importada' : 'operaciones nuevas importadas'}` +
+          (autoCreated > 0 ? `, ${autoCreated} ${autoCreated === 1 ? 'compra registrada como inversión' : 'compras registradas como inversiones'}` : '')
+        );
+        setTimeout(() => setSyncMessage(''), 6000);
+      }
       loadIol();
+      load();
+      setInternalRefresh((r) => r + 1);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: string } } };
       alert(axiosErr.response?.data?.error || 'Error al sincronizar');
@@ -386,7 +405,29 @@ export default function Investments() {
             No hay posiciones en el portfolio. Sincronizá para actualizar.
           </div>
         )}
+
+        {syncMessage && (
+          <div className="mt-3 bg-primary/[0.08] border border-primary/25 rounded-lg p-3 flex items-center gap-2 fade-in">
+            <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
+            <p className="text-xs text-primary">{syncMessage}</p>
+          </div>
+        )}
       </div>
+
+      {/* Patrimony evolution chart */}
+      {iolStatus?.connected && (
+        <PatrimonyChart refreshKey={internalRefresh} />
+      )}
+
+      {/* Instrument search */}
+      {iolStatus?.connected && (
+        <InstrumentSearch />
+      )}
+
+      {/* Operations history */}
+      {iolStatus?.connected && (
+        <OperationsHistory refreshKey={internalRefresh} />
+      )}
 
       {/* Manual investment form */}
       {showForm && (
@@ -508,6 +549,11 @@ export default function Investments() {
                       {inv.ticker && (
                         <span className="text-[10px] px-1.5 py-0.5 bg-primary/15 text-primary rounded font-semibold">
                           {inv.ticker}
+                        </span>
+                      )}
+                      {inv.auto_generated && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-secondary/15 text-secondary rounded font-semibold flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" /> auto
                         </span>
                       )}
                     </div>
