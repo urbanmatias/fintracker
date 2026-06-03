@@ -31,9 +31,9 @@ Roadmap de features pendientes y mejoras. Marcá con `[x]` cuando estén hechas.
 - [ ] **Importar gastos desde CSV/Excel** (extracto del banco)
 - [ ] **Reglas de auto-categorización**: si la descripción contiene "uber" → Transporte
 - [ ] **OCR de tickets**: foto de factura → extrae monto + comercio (Google Vision o Claude)
-- [ ] **Comando rápido con parser**: escribir "almuerzo 2500 #urgente" y parsear todo
+- [x] **Comando rápido con parser**: escribir "almuerzo 2500 #urgente" y parsear todo
 - [ ] **Búsqueda global** con Cmd+K (busca gastos, ir a páginas)
-- [ ] **Atajos de teclado** en desktop (n = nuevo gasto, etc)
+- [x] **Atajos de teclado** en desktop (n = nuevo gasto, etc)
 - [ ] **Voice input**: dictar gasto al celu y que se cargue
 - [ ] **Cancelar acción con Undo toast** en vez de confirm dialog ("Gasto eliminado [Deshacer]")
 
@@ -51,10 +51,10 @@ Roadmap de features pendientes y mejoras. Marcá con `[x]` cuando estén hechas.
 
 ## 🧠 Inteligencia y predicción
 
-- [ ] **Forecast del mes**: "si seguís así terminás con $X de excedente"
+- [x] **Forecast del mes**: "si seguís así terminás con $X de excedente"
 - [ ] **Detección de subscripciones olvidadas**: cargos recurrentes con misma descripción no marcados como gasto fijo
 - [ ] **Alertas de overspend visuales** en el dashboard
-- [ ] **Anomalías**: "hoy gastaste 3x tu promedio" (ya hay algo básico, mejorar)
+- [x] **Anomalías**: "hoy gastaste 3x tu promedio" (ya hay algo básico, mejorar)
 
 ---
 

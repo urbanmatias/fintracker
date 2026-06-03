@@ -7,6 +7,7 @@ import api from '../api/client';
 import AnimatedNumber from '../components/AnimatedNumber';
 import InsightCards, { type Insight } from '../components/InsightCard';
 import EmptyState from '../components/EmptyState';
+import ForecastCard from '../components/ForecastCard';
 import { Settings as SettingsIcon, TrendingUp, Wallet, PiggyBank, ArrowRight, Trash2, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -163,6 +164,9 @@ export default function Dashboard() {
 
       {/* Insights */}
       {insights.length > 0 && <InsightCards insights={insights} />}
+
+      {/* Forecast */}
+      <ForecastCard refreshKey={refreshKey} />
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-3">

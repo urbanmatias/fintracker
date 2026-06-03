@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import QuickAddModal from './QuickAddModal';
@@ -28,6 +28,25 @@ export default function Layout() {
   const haptic = useHaptic();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+
+  // Keyboard shortcut: "N" anywhere opens Quick Add (desktop)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'n' && e.key !== 'N') return;
+      const target = e.target as HTMLElement;
+      const isTyping =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable;
+      if (isTyping) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      e.preventDefault();
+      setQuickAddOpen(true);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -195,8 +214,8 @@ export default function Layout() {
         <button
           onClick={() => setQuickAddOpen(true)}
           className="hidden md:flex fixed bottom-8 right-8 w-14 h-14 bg-primary hover:bg-primary-dark text-background rounded-full shadow-lg shadow-primary/25 items-center justify-center transition-all hover:scale-105 z-30"
-          aria-label="Agregar gasto"
-          title="Agregar gasto"
+          aria-label="Agregar gasto (presioná N)"
+          title="Agregar gasto · presioná N"
         >
           <Plus className="w-6 h-6" strokeWidth={2.5} />
         </button>

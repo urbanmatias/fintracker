@@ -309,4 +309,93 @@ router.get('/trends', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Forecast for current month based on actual pace
+router.get('/forecast', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    await autoCloseDays(req.user!.id);
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const today = now.getDate();
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const daysRemaining = daysInMonth - today;
+
+    const user = await db('users').where({ id: req.user!.id }).first();
+    if (!user || !user.monthly_income || Number(user.monthly_income) <= 0) {
+      res.json({ available: false });
+      return;
+    }
+
+    const fixedExpensesRow = await db('fixed_expenses')
+      .where({ user_id: req.user!.id, active: true })
+      .sum('amount as total')
+      .first();
+    const fixedTotal = Number(fixedExpensesRow?.total || 0);
+    const monthBudget = Number(user.monthly_income) - fixedTotal;
+    const dailyBudget = monthBudget / daysInMonth;
+
+    // Spent so far this month
+    const spentSoFar = await db('daily_expenses')
+      .where({ user_id: req.user!.id })
+      .whereRaw('EXTRACT(MONTH FROM date) = ? AND EXTRACT(YEAR FROM date) = ?', [month, year])
+      .sum('amount as total')
+      .first();
+    const spent = Number(spentSoFar?.total || 0);
+
+    // Avg daily spending so far this month
+    const avgDailySoFar = today > 0 ? spent / today : 0;
+
+    // Projected total = what's spent + (avg pace * remaining days)
+    const projectedTotal = spent + avgDailySoFar * daysRemaining;
+    const projectedSurplus = monthBudget - projectedTotal;
+    const projectedSavings = projectedSurplus > 0 ? projectedSurplus : 0;
+    const projectedToInvestment = projectedSavings * (Number(user.investment_percent) / 100);
+    const projectedToExcedent = projectedSavings * (Number(user.savings_percent) / 100);
+
+    // Compare with budget pace
+    const expectedSpentSoFar = dailyBudget * today;
+    const overUnder = spent - expectedSpentSoFar;
+
+    // Status: on_track / over / under
+    let status: 'on_track' | 'over' | 'under' = 'on_track';
+    const tolerance = monthBudget * 0.05; // 5%
+    if (overUnder > tolerance) status = 'over';
+    else if (overUnder < -tolerance) status = 'under';
+
+    // Get current excedent balance
+    const lastBalance = await db('daily_balances')
+      .where({ user_id: req.user!.id })
+      .orderBy('date', 'desc')
+      .first();
+    const currentExcedent = lastBalance ? Number(lastBalance.excedent_balance) : 0;
+    const projectedFinalExcedent = currentExcedent + projectedToExcedent;
+
+    res.json({
+      available: true,
+      year,
+      month,
+      day: today,
+      days_in_month: daysInMonth,
+      days_remaining: daysRemaining,
+      month_budget: monthBudget,
+      daily_budget: dailyBudget,
+      spent_so_far: spent,
+      avg_daily_so_far: avgDailySoFar,
+      expected_spent_so_far: expectedSpentSoFar,
+      over_under: overUnder,
+      status,
+      projected_total: projectedTotal,
+      projected_surplus: projectedSurplus,
+      projected_to_investment: projectedToInvestment,
+      projected_to_excedent: projectedToExcedent,
+      current_excedent: currentExcedent,
+      projected_final_excedent: projectedFinalExcedent,
+    });
+  } catch (error) {
+    console.error('Forecast error:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 export default router;
