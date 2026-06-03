@@ -20,6 +20,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('theme', theme);
+    // Update browser theme-color meta to match
+    const themeColor = theme === 'dark' ? '#101418' : '#f1ede4';
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', themeColor);
   }, [theme]);
 
   const setTheme = (t: Theme) => setThemeState(t);

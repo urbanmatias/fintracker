@@ -19,18 +19,18 @@
 }
 
 [data-theme="light"] {
-  --c-primary: #15a86b;
-  --c-primary-dark: #119159;
-  --c-secondary: #14b8b8;
-  --c-danger: #e23a55;
-  --c-warning: #d97706;
-  --c-surface: #ffffff;
-  --c-surface-light: #f8fafc;
-  --c-background: #f1f5f9;
-  --c-sidebar: #ffffff;
-  --c-border: #e2e8f0;
-  --c-text: #1a202c;
-  --c-text-muted: #64748b;
+  --c-primary: #16a672;
+  --c-primary-dark: #0e8a5c;
+  --c-secondary: #0fa5a5;
+  --c-danger: #d4485f;
+  --c-warning: #c2780b;
+  --c-surface: #f6f3ed;          /* warm cream card */
+  --c-surface-light: #ede9e0;
+  --c-background: #f1ede4;       /* paper background, not white */
+  --c-sidebar: #ebe6db;
+  --c-border: #d8d2c4;
+  --c-text: #2a2620;             /* warm dark for body text */
+  --c-text-muted: #7a7164;
 }
 
 @theme inline {
