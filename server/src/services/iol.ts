@@ -1,3 +1,5 @@
+import https from 'https';
+import { URL } from 'url';
 import db from '../database/connection';
 import { encrypt, decrypt } from './crypto';
 
@@ -91,6 +93,44 @@ export class IolApiError extends Error {
   }
 }
 
+interface RawHttpResponse {
+  status: number;
+  headers: Record<string, string | string[] | undefined>;
+  body: string;
+}
+
+function rawHttpsPost(url: string, body: string, headers: Record<string, string>): Promise<RawHttpResponse> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const req = https.request(
+      {
+        host: u.hostname,
+        port: u.port || 443,
+        path: u.pathname + u.search,
+        method: 'POST',
+        headers: {
+          'Content-Length': Buffer.byteLength(body).toString(),
+          ...headers,
+        },
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => {
+          resolve({
+            status: res.statusCode || 0,
+            headers: res.headers,
+            body: Buffer.concat(chunks).toString('utf8'),
+          });
+        });
+      }
+    );
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
 async function requestToken(username: string, password: string): Promise<IolTokenResponse> {
   const params = new URLSearchParams();
   params.append('username', username);
@@ -98,72 +138,51 @@ async function requestToken(username: string, password: string): Promise<IolToke
   params.append('grant_type', 'password');
   const body = params.toString();
 
-  const res = await fetch(TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (compatible; FinTracker/1.0)',
-      'Content-Length': String(Buffer.byteLength(body)),
-    },
-    body,
-    redirect: 'manual',
+  // Use Node's native https module (more predictable than fetch with form-encoded bodies)
+  const res = await rawHttpsPost(TOKEN_URL, body, {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Accept': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (compatible; FinTracker/1.0)',
   });
 
-  console.log('[IOL] token POST status:', res.status, 'allow:', res.headers.get('allow'), 'location:', res.headers.get('location'));
+  console.log('[IOL] token POST status:', res.status, 'allow:', res.headers.allow, 'body length:', res.body.length);
 
-  // Handle redirect manually if IOL is sending one
-  if (res.status >= 300 && res.status < 400) {
-    const location = res.headers.get('location');
-    if (location) {
-      console.log('[IOL] following redirect to', location);
-      const target = location.startsWith('http') ? location : new URL(location, IOL_BASE).toString();
-      const retry = await fetch(target, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (compatible; FinTracker/1.0)',
-        },
-        body,
-      });
-      console.log('[IOL] redirect retry status:', retry.status);
-      if (retry.ok) return retry.json() as Promise<IolTokenResponse>;
-    }
-  }
-
-  if (!res.ok) {
-    let detail = '';
+  if (res.status >= 200 && res.status < 300) {
     try {
-      const data = await res.json() as Record<string, unknown>;
-      detail = String(data?.error_description || data?.error || data?.message || '');
+      return JSON.parse(res.body) as IolTokenResponse;
     } catch {
-      detail = await res.text().catch(() => '');
+      throw new IolApiError('IOL devolvió respuesta inválida', 500);
     }
-
-    console.log('[IOL] token error detail:', detail);
-
-    if (res.status === 405) {
-      const allow = res.headers.get('allow') || 'desconocido';
-      throw new IolApiError(
-        `IOL devolvió 405 Method Not Allowed (métodos permitidos: ${allow}). Revisá los logs del servidor para más detalle.`,
-        res.status
-      );
-    }
-
-    if (res.status === 400 || res.status === 401) {
-      throw new IolApiError(
-        detail
-          ? `IOL rechazó el login: ${detail}`
-          : 'IOL rechazó el login. Verificá usuario, contraseña, y que tengas 2FA desactivado en IOL (la API no lo soporta).',
-        res.status
-      );
-    }
-
-    throw new IolApiError(detail || `IOL devolvió error ${res.status}`, res.status);
   }
 
-  return res.json() as Promise<IolTokenResponse>;
+  let detail = '';
+  try {
+    const data = JSON.parse(res.body) as Record<string, unknown>;
+    detail = String(data?.error_description || data?.error || data?.message || '');
+  } catch {
+    detail = res.body;
+  }
+
+  console.log('[IOL] token error detail:', detail);
+
+  if (res.status === 405) {
+    const allow = res.headers.allow || 'desconocido';
+    throw new IolApiError(
+      `IOL devolvió 405. Allow: ${allow}. Body: ${detail || '(vacío)'}`,
+      res.status
+    );
+  }
+
+  if (res.status === 400 || res.status === 401) {
+    throw new IolApiError(
+      detail
+        ? `IOL rechazó el login: ${detail}`
+        : 'IOL rechazó el login. Verificá usuario, contraseña, y que tengas 2FA desactivado en IOL (la API no lo soporta).',
+      res.status
+    );
+  }
+
+  throw new IolApiError(detail || `IOL devolvió error ${res.status}`, res.status);
 }
 
 async function refreshToken(refreshTokenValue: string): Promise<IolTokenResponse> {
