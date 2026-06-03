@@ -92,23 +92,45 @@ export class IolApiError extends Error {
 }
 
 async function requestToken(username: string, password: string): Promise<IolTokenResponse> {
-  const body = new URLSearchParams({
-    username,
-    password,
-    grant_type: 'password',
-  });
+  const params = new URLSearchParams();
+  params.append('username', username);
+  params.append('password', password);
+  params.append('grant_type', 'password');
+  const body = params.toString();
 
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Accept': 'application/json',
-      'User-Agent': 'FinTracker/1.0',
+      'User-Agent': 'Mozilla/5.0 (compatible; FinTracker/1.0)',
+      'Content-Length': String(Buffer.byteLength(body)),
     },
-    body: body.toString(),
+    body,
+    redirect: 'manual',
   });
 
-  console.log('[IOL] token request status:', res.status, 'allow:', res.headers.get('allow'));
+  console.log('[IOL] token POST status:', res.status, 'allow:', res.headers.get('allow'), 'location:', res.headers.get('location'));
+
+  // Handle redirect manually if IOL is sending one
+  if (res.status >= 300 && res.status < 400) {
+    const location = res.headers.get('location');
+    if (location) {
+      console.log('[IOL] following redirect to', location);
+      const target = location.startsWith('http') ? location : new URL(location, IOL_BASE).toString();
+      const retry = await fetch(target, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (compatible; FinTracker/1.0)',
+        },
+        body,
+      });
+      console.log('[IOL] redirect retry status:', retry.status);
+      if (retry.ok) return retry.json() as Promise<IolTokenResponse>;
+    }
+  }
 
   if (!res.ok) {
     let detail = '';
@@ -122,8 +144,9 @@ async function requestToken(username: string, password: string): Promise<IolToke
     console.log('[IOL] token error detail:', detail);
 
     if (res.status === 405) {
+      const allow = res.headers.get('allow') || 'desconocido';
       throw new IolApiError(
-        'IOL devolvió 405. Esto puede ser un problema temporal del proxy de IOL — esperá unos minutos y reintentá.',
+        `IOL devolvió 405 Method Not Allowed (métodos permitidos: ${allow}). Revisá los logs del servidor para más detalle.`,
         res.status
       );
     }
