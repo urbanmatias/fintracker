@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
-import { AuthRequest, authenticate } from '../middleware/auth';
+import { AuthRequest, authenticate, authenticateAny } from '../middleware/auth';
+import db from '../database/connection';
 import {
   connectIol,
   disconnectIol,
@@ -191,6 +192,244 @@ router.get('/history/:market/:symbol', authenticate, async (req: AuthRequest, re
     }
     console.error('IOL history error:', error);
     res.status(500).json({ error: 'Error al obtener histórico' });
+  }
+});
+
+interface IngestPosition {
+  country: string;
+  symbol: string;
+  description?: string | null;
+  instrument_type?: string | null;
+  quantity: number;
+  last_price?: number | null;
+  ppc?: number | null;
+  valuation?: number | null;
+  profit_loss?: number | null;
+  profit_loss_percent?: number | null;
+  currency?: string | null;
+}
+
+interface IngestOperation {
+  iol_operation_id: number;
+  date: string;
+  type: string;
+  status?: string | null;
+  symbol?: string | null;
+  market?: string | null;
+  quantity?: number | null;
+  price?: number | null;
+  total?: number | null;
+  currency?: string | null;
+  description?: string | null;
+  raw?: unknown;
+}
+
+interface IngestDividend {
+  iol_movement_id: number;
+  date: string;
+  symbol?: string | null;
+  type?: string | null;
+  amount: number;
+  currency?: string | null;
+  description?: string | null;
+  raw?: unknown;
+}
+
+interface IngestPayload {
+  username?: string;
+  positions?: IngestPosition[];
+  operations?: IngestOperation[];
+  dividends?: IngestDividend[];
+}
+
+const DIVIDEND_KEYWORDS = ['dividendo', 'dividend', 'renta', 'cobro de cupon', 'cobro de cupón', 'cupon', 'cupón'];
+function isDividendType(typeOrDesc: string): boolean {
+  const lower = (typeOrDesc || '').toLowerCase();
+  return DIVIDEND_KEYWORDS.some((k) => lower.includes(k));
+}
+
+/**
+ * Local sync client posts portfolio + operations + dividends here.
+ * Uses API token (Authorization: Bearer ft_...) so it's separate from the
+ * normal browser session.
+ */
+router.post('/ingest', authenticateAny, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const payload = req.body as IngestPayload;
+
+    let portfolioCount = 0;
+    let operationsImported = 0;
+    let autoCreatedInvestments = 0;
+    let dividendsImported = 0;
+
+    // Mark connection as active (without storing IOL credentials!)
+    if (payload.username) {
+      const { encrypt } = await import('../services/crypto');
+      await db('iol_connections')
+        .insert({
+          user_id: userId,
+          username_encrypted: encrypt(payload.username),
+          // Empty placeholders - we never store the password when using local sync
+          password_encrypted: encrypt(''),
+          access_token: '',
+          refresh_token: '',
+          token_expires_at: new Date(0),
+          last_sync_at: new Date(),
+        })
+        .onConflict('user_id')
+        .merge({
+          username_encrypted: encrypt(payload.username),
+          last_sync_at: new Date(),
+          updated_at: new Date(),
+        });
+    } else {
+      await db('iol_connections')
+        .where({ user_id: userId })
+        .update({ last_sync_at: new Date() });
+    }
+
+    // 1. Portfolio (replace all)
+    if (Array.isArray(payload.positions)) {
+      await db('iol_portfolio').where({ user_id: userId }).del();
+
+      const rows = payload.positions.map((p) => ({
+        user_id: userId,
+        country: p.country,
+        symbol: p.symbol,
+        description: p.description ?? null,
+        instrument_type: p.instrument_type ?? null,
+        quantity: p.quantity,
+        last_price: p.last_price ?? null,
+        ppc: p.ppc ?? null,
+        valuation: p.valuation ?? null,
+        profit_loss: p.profit_loss ?? null,
+        profit_loss_percent: p.profit_loss_percent ?? null,
+        currency: p.currency ?? null,
+      }));
+
+      if (rows.length > 0) {
+        await db('iol_portfolio').insert(rows);
+      }
+      portfolioCount = rows.length;
+
+      // Daily snapshot
+      const totalValuation = payload.positions.reduce((s, p) => s + Number(p.valuation || 0), 0);
+      const totalPL = payload.positions.reduce((s, p) => s + Number(p.profit_loss || 0), 0);
+      const today = new Date().toISOString().split('T')[0];
+
+      await db('portfolio_snapshots')
+        .insert({
+          user_id: userId,
+          date: today,
+          total_valuation: totalValuation,
+          total_profit_loss: totalPL,
+          positions_count: payload.positions.length,
+          raw_positions: JSON.stringify(payload.positions),
+        })
+        .onConflict(['user_id', 'date'])
+        .merge({
+          total_valuation: totalValuation,
+          total_profit_loss: totalPL,
+          positions_count: payload.positions.length,
+          raw_positions: JSON.stringify(payload.positions),
+          updated_at: new Date(),
+        });
+    }
+
+    // 2. Operations (upsert by iol_operation_id, auto-create investments)
+    if (Array.isArray(payload.operations)) {
+      for (const op of payload.operations) {
+        if (!op.iol_operation_id || !op.date) continue;
+
+        const existing = await db('iol_operations')
+          .where({ user_id: userId, iol_operation_id: op.iol_operation_id })
+          .first();
+
+        if (existing) continue;
+
+        const [inserted] = await db('iol_operations')
+          .insert({
+            user_id: userId,
+            iol_operation_id: op.iol_operation_id,
+            date: op.date,
+            type: op.type,
+            status: op.status ?? null,
+            symbol: op.symbol ?? null,
+            market: op.market ?? null,
+            quantity: op.quantity ?? null,
+            price: op.price ?? null,
+            total: op.total ?? null,
+            currency: op.currency ?? null,
+            raw_data: op.raw ? JSON.stringify(op.raw) : null,
+          })
+          .returning('id');
+
+        operationsImported++;
+
+        // Auto-create investment for purchases
+        const isPurchase = (op.type || '').toLowerCase().includes('compra');
+        const total = Number(op.total || 0);
+        if (isPurchase && total > 0 && op.symbol) {
+          const [inv] = await db('investments')
+            .insert({
+              user_id: userId,
+              amount: total,
+              date: op.date,
+              description: `${op.type} ${op.symbol}`,
+              ticker: op.symbol,
+              quantity: op.quantity ?? null,
+              price_per_unit: op.price ?? null,
+              platform: 'IOL',
+              iol_operation_id: op.iol_operation_id,
+              auto_generated: true,
+            })
+            .returning('id');
+
+          await db('iol_operations').where({ id: inserted.id }).update({ matched_investment_id: inv.id });
+          autoCreatedInvestments++;
+        }
+      }
+    }
+
+    // 3. Dividends (upsert by iol_movement_id, only those that match keywords)
+    if (Array.isArray(payload.dividends)) {
+      for (const d of payload.dividends) {
+        if (!d.iol_movement_id || !d.date || !d.amount) continue;
+        // Either client filters or we double-check
+        const lookText = `${d.type || ''} ${d.description || ''}`;
+        if (!isDividendType(lookText)) continue;
+
+        const existing = await db('iol_dividends')
+          .where({ user_id: userId, iol_movement_id: d.iol_movement_id })
+          .first();
+        if (existing) continue;
+
+        await db('iol_dividends').insert({
+          user_id: userId,
+          iol_movement_id: d.iol_movement_id,
+          date: d.date,
+          symbol: d.symbol ?? null,
+          type: d.type ?? null,
+          amount: d.amount,
+          currency: d.currency ?? null,
+          description: d.description ?? null,
+          raw_data: d.raw ? JSON.stringify(d.raw) : null,
+        });
+        dividendsImported++;
+      }
+    }
+
+    res.json({
+      ok: true,
+      portfolio_count: portfolioCount,
+      operations_imported: operationsImported,
+      auto_created_investments: autoCreatedInvestments,
+      dividends_imported: dividendsImported,
+    });
+  } catch (error) {
+    console.error('IOL ingest error:', error);
+    res.status(500).json({ error: 'Error al procesar datos' });
   }
 });
 

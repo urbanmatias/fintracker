@@ -1,0 +1,17 @@
+{
+  "name": "fintracker-iol-sync",
+  "version": "1.0.0",
+  "description": "Cliente local que sincroniza tu cuenta de IOL con tu instancia de FinTracker",
+  "main": "sync.js",
+  "type": "module",
+  "scripts": {
+    "start": "node sync.js",
+    "watch": "node sync.js --watch"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

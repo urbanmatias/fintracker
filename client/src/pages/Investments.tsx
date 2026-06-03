@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Trash2, Target, Wallet, BarChart3, Link2, Unlink, RefreshCw, AlertCircle, Sparkles } from 'lucide-react';
+import { TrendingUp, Trash2, Target, Wallet, BarChart3, Sparkles } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +9,7 @@ import InstrumentSearch from '../components/InstrumentSearch';
 import OperationsHistory from '../components/OperationsHistory';
 import PatrimonyChart from '../components/PatrimonyChart';
 import DividendsPanel from '../components/DividendsPanel';
+import IolSyncSetup from '../components/IolSyncSetup';
 
 interface Investment {
   id: string;
@@ -62,12 +63,6 @@ export default function Investments() {
 
   const [iolStatus, setIolStatus] = useState<IolStatus | null>(null);
   const [iolPortfolio, setIolPortfolio] = useState<IolPosition[]>([]);
-  const [iolFormOpen, setIolFormOpen] = useState(false);
-  const [iolUsername, setIolUsername] = useState('');
-  const [iolPassword, setIolPassword] = useState('');
-  const [iolError, setIolError] = useState('');
-  const [iolLoading, setIolLoading] = useState(false);
-  const [syncMessage, setSyncMessage] = useState('');
   const [internalRefresh, setInternalRefresh] = useState(0);
 
   const [amount, setAmount] = useState('');
@@ -125,61 +120,6 @@ export default function Investments() {
     try {
       await api.delete(`/investments/${id}`);
       load();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleConnectIol = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIolError('');
-    setIolLoading(true);
-    try {
-      await api.post('/iol/connect', { username: iolUsername, password: iolPassword });
-      setIolUsername('');
-      setIolPassword('');
-      setIolFormOpen(false);
-      loadIol();
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string } } };
-      setIolError(axiosErr.response?.data?.error || 'No se pudo conectar');
-    } finally {
-      setIolLoading(false);
-    }
-  };
-
-  const handleSyncIol = async () => {
-    setIolLoading(true);
-    setSyncMessage('');
-    try {
-      const res = await api.post('/iol/sync', {});
-      const imported = res.data.imported || 0;
-      const autoCreated = res.data.autoCreated || 0;
-      const dividendsImported = res.data.dividends_imported || 0;
-      const parts: string[] = [];
-      if (imported > 0) parts.push(`${imported} ${imported === 1 ? 'operación nueva' : 'operaciones nuevas'}`);
-      if (autoCreated > 0) parts.push(`${autoCreated} ${autoCreated === 1 ? 'inversión registrada' : 'inversiones registradas'}`);
-      if (dividendsImported > 0) parts.push(`${dividendsImported} ${dividendsImported === 1 ? 'dividendo cobrado' : 'dividendos cobrados'}`);
-      if (parts.length > 0) {
-        setSyncMessage(parts.join(' · '));
-        setTimeout(() => setSyncMessage(''), 6000);
-      }
-      loadIol();
-      load();
-      setInternalRefresh((r) => r + 1);
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string } } };
-      alert(axiosErr.response?.data?.error || 'Error al sincronizar');
-    } finally {
-      setIolLoading(false);
-    }
-  };
-
-  const handleDisconnectIol = async () => {
-    if (!confirm('¿Desconectar IOL? Se eliminarán las credenciales y el portfolio sincronizado.')) return;
-    try {
-      await api.post('/iol/disconnect', {});
-      loadIol();
     } catch (err) {
       console.error(err);
     }
@@ -263,159 +203,66 @@ export default function Investments() {
         </div>
       </div>
 
-      {/* IOL Integration */}
-      <div className="bg-surface rounded-2xl p-5 md:p-6 border border-border">
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center">
-              <Link2 className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-sm">Invertir Online (IOL)</h3>
-              <p className="text-xs text-text-muted mt-0.5">
-                {iolStatus?.connected
-                  ? `Conectado como ${iolStatus.username}${iolStatus.last_sync_at ? ` · Última sincronización: ${new Date(iolStatus.last_sync_at).toLocaleString('es-AR')}` : ''}`
-                  : 'Conectá tu cuenta de IOL para ver tu portfolio en tiempo real'}
-              </p>
+      {/* IOL Sync (via local client) */}
+      <IolSyncSetup
+        status={iolStatus}
+        onChange={() => {
+          loadIol();
+          load();
+          setInternalRefresh((r) => r + 1);
+        }}
+      />
+
+      {/* Portfolio table - only when there are positions */}
+      {iolStatus?.connected && iolPortfolio.length > 0 && (
+        <div className="bg-surface rounded-2xl p-5 md:p-6 border border-border">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h3 className="font-semibold text-sm">Portfolio IOL</h3>
+            <div className="flex gap-4 text-xs">
+              <span className="text-text-muted">Valor: <span className="text-text font-semibold money">${totalIolValuation.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span></span>
+              <span className="text-text-muted">P/L: <span className={`font-semibold money ${totalIolPL >= 0 ? 'text-primary' : 'text-danger'}`}>
+                {totalIolPL >= 0 ? '+' : ''}${totalIolPL.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+              </span></span>
             </div>
           </div>
-          {iolStatus?.connected ? (
-            <div className="flex gap-2 flex-shrink-0">
-              <button
-                onClick={handleSyncIol}
-                disabled={iolLoading}
-                className="px-3 py-2 bg-primary/15 hover:bg-primary/25 text-primary rounded-[10px] font-semibold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${iolLoading ? 'animate-spin' : ''}`} />
-                Sincronizar
-              </button>
-              <button
-                onClick={handleDisconnectIol}
-                className="px-3 py-2 bg-danger/10 hover:bg-danger/20 text-danger rounded-[10px] font-semibold text-xs transition-colors flex items-center gap-1.5"
-              >
-                <Unlink className="w-3.5 h-3.5" />
-                Desconectar
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setIolFormOpen(!iolFormOpen)}
-              className="px-3 py-2 bg-primary hover:bg-primary-dark text-background rounded-[10px] font-semibold text-xs transition-colors flex-shrink-0"
-            >
-              {iolFormOpen ? 'Cancelar' : 'Conectar'}
-            </button>
-          )}
-        </div>
-
-        {iolFormOpen && !iolStatus?.connected && (
-          <form onSubmit={handleConnectIol} className="space-y-3 pt-4 border-t border-border">
-            <div className="bg-warning/[0.06] border border-warning/20 rounded-lg p-3 flex gap-2">
-              <AlertCircle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-text-muted">
-                Tus credenciales se guardan cifradas (AES-256-GCM) y solo se usan para llamar a la API de IOL.
-                No las usamos para nada más. Si querés podés desconectar cuando quieras.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="iol-user" className="block text-xs text-text-muted mb-1">Usuario IOL</label>
-                <input
-                  id="iol-user"
-                  type="text"
-                  value={iolUsername}
-                  onChange={(e) => setIolUsername(e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:border-primary text-text text-sm"
-                  required
-                  autoComplete="off"
-                />
-              </div>
-              <div>
-                <label htmlFor="iol-pass" className="block text-xs text-text-muted mb-1">Contraseña IOL</label>
-                <input
-                  id="iol-pass"
-                  type="password"
-                  value={iolPassword}
-                  onChange={(e) => setIolPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:border-primary text-text text-sm"
-                  required
-                  autoComplete="off"
-                />
-              </div>
-            </div>
-            {iolError && <p className="text-sm text-danger">{iolError}</p>}
-            <button
-              type="submit"
-              disabled={iolLoading}
-              className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-background rounded-[10px] font-semibold text-sm transition-colors disabled:opacity-50"
-            >
-              {iolLoading ? 'Conectando...' : 'Conectar y sincronizar'}
-            </button>
-          </form>
-        )}
-
-        {iolStatus?.connected && iolPortfolio.length > 0 && (
-          <div className="pt-4 border-t border-border">
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <h4 className="text-xs text-text-muted uppercase tracking-wide font-semibold">Portfolio IOL</h4>
-              <div className="flex gap-4 text-xs">
-                <span className="text-text-muted">Valor: <span className="text-text font-semibold money">${totalIolValuation.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span></span>
-                <span className="text-text-muted">P/L: <span className={`font-semibold money ${totalIolPL >= 0 ? 'text-primary' : 'text-danger'}`}>
-                  {totalIolPL >= 0 ? '+' : ''}${totalIolPL.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                </span></span>
-              </div>
-            </div>
-            <div className="overflow-x-auto -mx-5 md:mx-0">
-              <table className="w-full text-sm min-w-[640px]">
-                <thead>
-                  <tr className="border-b border-border text-text-muted text-[11px] uppercase">
-                    <th className="text-left p-2 font-medium">Símbolo</th>
-                    <th className="text-right p-2 font-medium">Cant.</th>
-                    <th className="text-right p-2 font-medium">PPC</th>
-                    <th className="text-right p-2 font-medium">Último</th>
-                    <th className="text-right p-2 font-medium">Valor</th>
-                    <th className="text-right p-2 font-medium">P/L</th>
+          <div className="overflow-x-auto -mx-5 md:mx-0">
+            <table className="w-full text-sm min-w-[640px]">
+              <thead>
+                <tr className="border-b border-border text-text-muted text-[11px] uppercase">
+                  <th className="text-left p-2 font-medium">Símbolo</th>
+                  <th className="text-right p-2 font-medium">Cant.</th>
+                  <th className="text-right p-2 font-medium">PPC</th>
+                  <th className="text-right p-2 font-medium">Último</th>
+                  <th className="text-right p-2 font-medium">Valor</th>
+                  <th className="text-right p-2 font-medium">P/L</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {iolPortfolio.map((p) => (
+                  <tr key={p.id} className="hover:bg-surface-light/30">
+                    <td className="p-2">
+                      <p className="font-semibold">{p.symbol}</p>
+                      <p className="text-[10px] text-text-muted truncate max-w-[200px]">{p.description}</p>
+                    </td>
+                    <td className="p-2 text-right money">{Number(p.quantity).toLocaleString('es-AR', { maximumFractionDigits: 4 })}</td>
+                    <td className="p-2 text-right money text-text-muted">{p.ppc ? `$${Number(p.ppc).toLocaleString('es-AR', { maximumFractionDigits: 2 })}` : '-'}</td>
+                    <td className="p-2 text-right money">{p.last_price ? `$${Number(p.last_price).toLocaleString('es-AR', { maximumFractionDigits: 2 })}` : '-'}</td>
+                    <td className="p-2 text-right money font-semibold">{p.valuation ? `$${Number(p.valuation).toLocaleString('es-AR', { maximumFractionDigits: 2 })}` : '-'}</td>
+                    <td className={`p-2 text-right money font-semibold ${Number(p.profit_loss || 0) >= 0 ? 'text-primary' : 'text-danger'}`}>
+                      {p.profit_loss !== null ? (
+                        <>
+                          {Number(p.profit_loss) >= 0 ? '+' : ''}${Number(p.profit_loss).toLocaleString('es-AR', { maximumFractionDigits: 2 })}
+                          <div className="text-[10px] opacity-70">{Number(p.profit_loss_percent || 0).toFixed(2)}%</div>
+                        </>
+                      ) : '-'}
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {iolPortfolio.map((p) => (
-                    <tr key={p.id} className="hover:bg-surface-light/30">
-                      <td className="p-2">
-                        <p className="font-semibold">{p.symbol}</p>
-                        <p className="text-[10px] text-text-muted truncate max-w-[200px]">{p.description}</p>
-                      </td>
-                      <td className="p-2 text-right money">{Number(p.quantity).toLocaleString('es-AR', { maximumFractionDigits: 4 })}</td>
-                      <td className="p-2 text-right money text-text-muted">{p.ppc ? `$${Number(p.ppc).toLocaleString('es-AR', { maximumFractionDigits: 2 })}` : '-'}</td>
-                      <td className="p-2 text-right money">{p.last_price ? `$${Number(p.last_price).toLocaleString('es-AR', { maximumFractionDigits: 2 })}` : '-'}</td>
-                      <td className="p-2 text-right money font-semibold">{p.valuation ? `$${Number(p.valuation).toLocaleString('es-AR', { maximumFractionDigits: 2 })}` : '-'}</td>
-                      <td className={`p-2 text-right money font-semibold ${Number(p.profit_loss || 0) >= 0 ? 'text-primary' : 'text-danger'}`}>
-                        {p.profit_loss !== null ? (
-                          <>
-                            {Number(p.profit_loss) >= 0 ? '+' : ''}${Number(p.profit_loss).toLocaleString('es-AR', { maximumFractionDigits: 2 })}
-                            <div className="text-[10px] opacity-70">{Number(p.profit_loss_percent || 0).toFixed(2)}%</div>
-                          </>
-                        ) : '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-
-        {iolStatus?.connected && iolPortfolio.length === 0 && (
-          <div className="pt-4 border-t border-border text-center text-sm text-text-muted py-4">
-            No hay posiciones en el portfolio. Sincronizá para actualizar.
-          </div>
-        )}
-
-        {syncMessage && (
-          <div className="mt-3 bg-primary/[0.08] border border-primary/25 rounded-lg p-3 flex items-center gap-2 fade-in">
-            <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
-            <p className="text-xs text-primary">{syncMessage}</p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Patrimony evolution chart */}
       {iolStatus?.connected && (
