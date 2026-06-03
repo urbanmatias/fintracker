@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Target, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Sparkles, AlertTriangle, Trophy } from 'lucide-react';
 import api from '../api/client';
 
 interface Forecast {
@@ -28,6 +28,87 @@ interface Props {
   refreshKey: number;
 }
 
+interface Tone {
+  Icon: typeof Target;
+  cardClass: string;
+  iconClass: string;
+  badgeText: string;
+  title: string;
+  description: string;
+}
+
+function buildTone(data: Forecast): Tone {
+  const surplus = data.projected_surplus || 0;
+  const monthBudget = data.month_budget || 0;
+  const surplusPercent = monthBudget > 0 ? (surplus / monthBudget) * 100 : 0;
+  const monthName = new Date(data.year!, data.month! - 1).toLocaleString('es-AR', { month: 'long' });
+  const daysLeft = data.days_remaining || 0;
+  const investment = data.projected_to_investment || 0;
+  const finalExcedent = data.projected_final_excedent || 0;
+
+  // Negative projection — danger
+  if (surplus < 0) {
+    return {
+      Icon: AlertTriangle,
+      cardClass: 'border-danger/30 bg-danger/[0.05]',
+      iconClass: 'text-danger',
+      badgeText: 'En rojo',
+      title: `Vas a cerrar el mes con $${Math.abs(surplus).toLocaleString('es-AR', { maximumFractionDigits: 0 })} en rojo`,
+      description: daysLeft > 0
+        ? `Tenés ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} para recortar el ritmo y dar vuelta el mes. Si frenás ahora todavía estás a tiempo.`
+        : `El mes terminó arriba del presupuesto. Se descuenta del excedente acumulado ($${(data.current_excedent || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}).`,
+    };
+  }
+
+  // Tiny surplus (less than 5% of budget) — meh
+  if (surplusPercent < 5) {
+    return {
+      Icon: TrendingDown,
+      cardClass: 'border-warning/30 bg-warning/[0.05]',
+      iconClass: 'text-warning',
+      badgeText: 'Apretado',
+      title: `Vas a cerrar con apenas $${surplus.toLocaleString('es-AR', { maximumFractionDigits: 0 })} de sobrante`,
+      description: daysLeft > 0
+        ? `Si recortás un poco los próximos ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} podés terminar el mes con un excedente decente para invertir.`
+        : `Quedó poco margen. A inversión van solo $${investment.toLocaleString('es-AR', { maximumFractionDigits: 0 })}.`,
+    };
+  }
+
+  // Decent surplus (5-15%) — good
+  if (surplusPercent < 15) {
+    return {
+      Icon: Sparkles,
+      cardClass: 'border-secondary/30 bg-secondary/[0.05]',
+      iconClass: 'text-secondary',
+      badgeText: 'Bien',
+      title: `Si seguís así, ${monthName} cierra con $${surplus.toLocaleString('es-AR', { maximumFractionDigits: 0 })} de excedente`,
+      description: `Vas en buen ritmo. A inversión irían $${investment.toLocaleString('es-AR', { maximumFractionDigits: 0 })} el último día del mes.`,
+    };
+  }
+
+  // Great surplus (15-30%) — keep going
+  if (surplusPercent < 30) {
+    return {
+      Icon: TrendingUp,
+      cardClass: 'border-primary/30 bg-primary/[0.05]',
+      iconClass: 'text-primary',
+      badgeText: 'En camino',
+      title: `Excelente: vas a invertir $${investment.toLocaleString('es-AR', { maximumFractionDigits: 0 })} este mes`,
+      description: `Si mantenés el pace, ${monthName} cierra con $${surplus.toLocaleString('es-AR', { maximumFractionDigits: 0 })} sobrantes. Tu colchón total quedaría en $${finalExcedent.toLocaleString('es-AR', { maximumFractionDigits: 0 })}.`,
+    };
+  }
+
+  // Killer month (>30%) — record territory
+  return {
+    Icon: Trophy,
+    cardClass: 'border-primary/40 bg-primary/[0.07]',
+    iconClass: 'text-primary',
+    badgeText: 'Mes récord',
+    title: `Mes récord en camino: $${surplus.toLocaleString('es-AR', { maximumFractionDigits: 0 })} de sobrante proyectado`,
+    description: `A este ritmo invertís $${investment.toLocaleString('es-AR', { maximumFractionDigits: 0 })} el último día. Tu excedente quedaría en $${finalExcedent.toLocaleString('es-AR', { maximumFractionDigits: 0 })}.`,
+  };
+}
+
 export default function ForecastCard({ refreshKey }: Props) {
   const [data, setData] = useState<Forecast | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,76 +122,50 @@ export default function ForecastCard({ refreshKey }: Props) {
 
   if (loading || !data?.available) return null;
 
-  const isOver = data.status === 'over';
-  const isUnder = data.status === 'under';
-
-  const monthName = new Date(data.year!, data.month! - 1).toLocaleString('es-AR', { month: 'long' });
-
-  // Status messaging
-  let title: string;
-  let description: string;
-  let Icon = Target;
-  let toneClass = 'border-secondary/30 bg-secondary/[0.04]';
-  let titleClass = 'text-secondary';
-
-  if (isOver) {
-    Icon = TrendingDown;
-    title = `Vas $${Math.abs(data.over_under || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })} arriba del ritmo`;
-    description = `Si seguís así terminás ${monthName} con ${
-      (data.projected_surplus || 0) >= 0
-        ? `+$${(data.projected_surplus || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })} de excedente`
-        : `$${Math.abs(data.projected_surplus || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })} en rojo`
-    }.`;
-    toneClass = 'border-warning/30 bg-warning/[0.04]';
-    titleClass = 'text-warning';
-  } else if (isUnder) {
-    Icon = TrendingUp;
-    title = `Vas $${Math.abs(data.over_under || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })} abajo del ritmo`;
-    description = `Si seguís así, ${monthName} cierra con +$${(data.projected_surplus || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })} de excedente.`;
-    toneClass = 'border-primary/30 bg-primary/[0.04]';
-    titleClass = 'text-primary';
-  } else {
-    Icon = Sparkles;
-    title = `Vas en ritmo`;
-    description = `Si mantenés este pace, ${monthName} cierra con $${(data.projected_surplus || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })} de excedente.`;
-    toneClass = 'border-secondary/30 bg-secondary/[0.04]';
-    titleClass = 'text-secondary';
-  }
+  const tone = buildTone(data);
+  const { Icon } = tone;
 
   // Progress bar: actual vs expected
   const monthProgressPct = data.days_in_month! > 0 ? (data.day! / data.days_in_month!) * 100 : 0;
   const actualSpentPct = (data.month_budget || 0) > 0 ? ((data.spent_so_far || 0) / (data.month_budget || 1)) * 100 : 0;
 
+  const surplus = data.projected_surplus || 0;
+  const isNegative = surplus < 0;
+  const isOver = (data.over_under || 0) > 0;
+
   return (
-    <div className={`rounded-2xl p-5 md:p-6 border ${toneClass} fade-in`}>
+    <div className={`rounded-2xl p-5 md:p-6 border ${tone.cardClass} fade-in`}>
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-current/10 flex items-center justify-center">
-          <Icon className={`w-5 h-5 ${titleClass}`} />
+          <Icon className={`w-5 h-5 ${tone.iconClass}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] text-text-muted uppercase tracking-wide font-semibold">Pronóstico del mes</p>
-          <p className={`font-semibold text-sm mt-0.5 ${titleClass}`}>{title}</p>
-          <p className="text-xs text-text-muted mt-1">{description}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-[11px] text-text-muted uppercase tracking-wide font-semibold">Pronóstico del mes</p>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ${tone.iconClass} bg-current/10`}>
+              {tone.badgeText}
+            </span>
+          </div>
+          <p className={`font-semibold text-sm mt-1 ${tone.iconClass}`}>{tone.title}</p>
+          <p className="text-xs text-text-muted mt-1 leading-relaxed">{tone.description}</p>
         </div>
       </div>
 
-      {/* Progress bar with markers */}
+      {/* Progress bar */}
       <div className="mt-4">
         <div className="flex justify-between text-[11px] text-text-muted mb-1.5">
           <span>Día {data.day} de {data.days_in_month}</span>
           <span>{actualSpentPct.toFixed(0)}% del presupuesto</span>
         </div>
         <div className="relative h-2 bg-border rounded-full overflow-hidden">
-          {/* Time progress (vertical line marker) */}
           <div
             className="absolute top-0 bottom-0 w-0.5 bg-text/40 z-10"
             style={{ left: `${Math.min(monthProgressPct, 100)}%` }}
             title="Día actual"
           />
-          {/* Actual spending bar */}
           <div
             className={`h-full rounded-full transition-all ${
-              isOver ? 'bg-warning' : isUnder ? 'bg-primary' : 'bg-secondary'
+              isNegative ? 'bg-danger' : isOver ? 'bg-warning' : 'bg-primary'
             }`}
             style={{ width: `${Math.min(actualSpentPct, 100)}%` }}
           />
@@ -137,7 +192,7 @@ export default function ForecastCard({ refreshKey }: Props) {
         </div>
         <div>
           <p className="text-[10px] text-text-muted uppercase">A inversión</p>
-          <p className="money text-sm font-semibold mt-0.5 text-primary">
+          <p className={`money text-sm font-semibold mt-0.5 ${isNegative ? 'text-text-muted' : 'text-primary'}`}>
             ${(data.projected_to_investment || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
           </p>
         </div>
