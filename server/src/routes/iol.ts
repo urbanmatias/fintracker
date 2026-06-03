@@ -49,7 +49,8 @@ router.post('/connect', authenticate, async (req: AuthRequest, res: Response) =>
     res.json({ message: 'Conectado a IOL' });
   } catch (error) {
     if (error instanceof IolApiError) {
-      res.status(error.status === 400 ? 401 : error.status).json({ error: 'Credenciales inválidas o error en IOL' });
+      // Send the actual error message so the user knows what's wrong
+      res.status(error.status === 400 || error.status === 401 ? 401 : error.status).json({ error: error.message });
       return;
     }
     console.error('IOL connect error:', error);

@@ -105,8 +105,24 @@ async function requestToken(username: string, password: string): Promise<IolToke
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new IolApiError(text || 'Credenciales inválidas', res.status);
+    let detail = '';
+    try {
+      const data = await res.json() as Record<string, unknown>;
+      detail = String(data?.error_description || data?.error || data?.message || '');
+    } catch {
+      detail = await res.text().catch(() => '');
+    }
+
+    if (res.status === 400 || res.status === 401) {
+      throw new IolApiError(
+        detail
+          ? `IOL rechazó el login: ${detail}`
+          : 'IOL rechazó el login. Verificá usuario, contraseña, y que tengas 2FA desactivado en IOL (la API no lo soporta).',
+        res.status
+      );
+    }
+
+    throw new IolApiError(detail || `IOL devolvió error ${res.status}`, res.status);
   }
 
   return res.json() as Promise<IolTokenResponse>;
