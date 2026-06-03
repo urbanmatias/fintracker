@@ -100,9 +100,15 @@ async function requestToken(username: string, password: string): Promise<IolToke
 
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json',
+      'User-Agent': 'FinTracker/1.0',
+    },
     body: body.toString(),
   });
+
+  console.log('[IOL] token request status:', res.status, 'allow:', res.headers.get('allow'));
 
   if (!res.ok) {
     let detail = '';
@@ -111,6 +117,15 @@ async function requestToken(username: string, password: string): Promise<IolToke
       detail = String(data?.error_description || data?.error || data?.message || '');
     } catch {
       detail = await res.text().catch(() => '');
+    }
+
+    console.log('[IOL] token error detail:', detail);
+
+    if (res.status === 405) {
+      throw new IolApiError(
+        'IOL devolvió 405. Esto puede ser un problema temporal del proxy de IOL — esperá unos minutos y reintentá.',
+        res.status
+      );
     }
 
     if (res.status === 400 || res.status === 401) {
