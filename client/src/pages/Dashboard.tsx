@@ -267,7 +267,7 @@ export default function Dashboard() {
       {/* Distribution preview */}
       {today && today.remaining > 0 && (
         <div className="bg-surface rounded-2xl p-5 md:p-6 border border-border">
-          <h3 className="font-semibold text-sm mb-4">Si no gastás más hoy</h3>
+          <h3 className="font-semibold text-sm mb-4">Si no gastás más hoy se reparte así</h3>
 
           {today.buckets_breakdown && today.buckets_breakdown.length > 0 ? (
             <>
@@ -276,30 +276,39 @@ export default function Dashboard() {
                 today.buckets_breakdown.length === 3 ? 'grid-cols-1 md:grid-cols-3' :
                 'grid-cols-2 md:grid-cols-4'
               }`}>
-                {today.buckets_breakdown.map((b) => (
-                  <div
-                    key={b.bucket_id}
-                    className="rounded-xl p-4 border"
-                    style={{
-                      backgroundColor: `${b.color}10`,
-                      borderColor: `${b.color}33`,
-                    }}
-                  >
-                    <p className="text-[11px] text-text-muted truncate">{b.name} · {b.percent}%</p>
-                    <p className="money text-lg font-bold mt-1" style={{ color: b.color }}>
-                      ${b.amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                    </p>
-                    {b.description && (
-                      <p className="text-[10px] text-text-muted mt-1 truncate">{b.description}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-xs">
-                <span className="text-text-muted">Excedente acumulado al cierre del día</span>
-                <span className="money font-semibold text-secondary">
-                  ${today.excedent_after_today.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                </span>
+                {today.buckets_breakdown.map((b) => {
+                  const isExcedent = b.type === 'excedent';
+                  // For excedent buckets, show the projected balance after today
+                  // (current excedent + this bucket's contribution)
+                  const projectedTotal = isExcedent
+                    ? (today.excedent_balance ?? 0) + b.amount
+                    : null;
+
+                  return (
+                    <div
+                      key={b.bucket_id}
+                      className="rounded-xl p-4 border"
+                      style={{
+                        backgroundColor: `${b.color}10`,
+                        borderColor: `${b.color}33`,
+                      }}
+                    >
+                      <p className="text-[11px] text-text-muted truncate">{b.name} · {b.percent}%</p>
+                      <p className="money text-lg font-bold mt-1" style={{ color: b.color }}>
+                        +${b.amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      </p>
+                      {isExcedent && projectedTotal !== null ? (
+                        <p className="text-[10px] text-text-muted mt-1">
+                          Total: <span className="money font-semibold" style={{ color: b.color }}>
+                            ${projectedTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </p>
+                      ) : b.description ? (
+                        <p className="text-[10px] text-text-muted mt-1 truncate">{b.description}</p>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             </>
           ) : (
