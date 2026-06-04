@@ -95,6 +95,31 @@ router.get('/monthly/:year/:month', authenticate, async (req: AuthRequest, res: 
     const totalAvailable = Number(user.monthly_income) - Number(fixedExpenses?.total || 0);
     const totalSaved = totalAvailable - totalDailyExpenses;
 
+    // Compute distribution across user's buckets
+    const buckets = await db('distribution_buckets')
+      .where({ user_id: req.user!.id })
+      .orderBy('sort_order');
+
+    const bucketsBreakdown = buckets.map((b) => {
+      const percent = Number(b.percent);
+      return {
+        bucket_id: b.id,
+        name: b.name,
+        type: b.type,
+        color: b.color,
+        percent,
+        description: b.description,
+        amount: totalSaved > 0 ? totalSaved * (percent / 100) : 0,
+      };
+    });
+
+    const toInvestmentTotal = bucketsBreakdown
+      .filter((b) => b.type === 'investment')
+      .reduce((s, b) => s + b.amount, 0);
+    const toExcedentTotal = bucketsBreakdown
+      .filter((b) => b.type === 'excedent')
+      .reduce((s, b) => s + b.amount, 0);
+
     res.json({
       year: Number(year),
       month: Number(month),
@@ -104,8 +129,9 @@ router.get('/monthly/:year/:month', authenticate, async (req: AuthRequest, res: 
       daily_budget: dailyBudget,
       total_available: totalAvailable,
       total_saved: totalSaved > 0 ? totalSaved : 0,
-      to_savings: totalSaved > 0 ? totalSaved * (Number(user.savings_percent) / 100) : 0,
-      to_investment: totalSaved > 0 ? totalSaved * (Number(user.investment_percent) / 100) : 0,
+      to_savings: toExcedentTotal,
+      to_investment: toInvestmentTotal,
+      buckets_breakdown: bucketsBreakdown,
       by_category: byCategory,
       daily_breakdown: dailyBreakdown,
       days_in_month: daysInMonth,

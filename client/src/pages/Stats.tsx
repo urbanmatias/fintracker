@@ -6,6 +6,16 @@ import DayDetailModal from '../components/DayDetailModal';
 import { useCategories } from '../hooks/useCategories';
 import { useDataRefresh } from '../context/DataContext';
 
+interface BucketBreakdown {
+  bucket_id: string;
+  name: string;
+  type: 'investment' | 'excedent' | 'custom';
+  color: string;
+  percent: number;
+  description: string | null;
+  amount: number;
+}
+
 interface MonthlyStats {
   year: number;
   month: number;
@@ -17,6 +27,7 @@ interface MonthlyStats {
   total_saved: number;
   to_savings: number;
   to_investment: number;
+  buckets_breakdown?: BucketBreakdown[];
   by_category: Array<{ category: string; total: number; count: string }>;
   daily_breakdown: Array<{ date: string; total: number }>;
   days_in_month: number;
@@ -352,21 +363,45 @@ export default function Stats() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-surface rounded-[14px] p-6 border border-border">
           <h3 className="font-semibold text-sm mb-3">Distribución del ahorro</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-text-muted text-sm">A inversión</span>
-              <span className="text-primary font-semibold">${stats.to_investment.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+          {stats.buckets_breakdown && stats.buckets_breakdown.length > 0 ? (
+            <div className="space-y-2">
+              {stats.buckets_breakdown.map((b) => (
+                <div key={b.bucket_id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: b.color }}></div>
+                    <span className="text-text-muted text-sm truncate">
+                      {b.name} <span className="text-text-muted/60 text-xs">· {b.percent}%</span>
+                    </span>
+                  </div>
+                  <span className="money font-semibold text-sm flex-shrink-0 ml-2" style={{ color: b.color }}>
+                    ${b.amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              ))}
+              <div className="flex justify-between pt-2 mt-2 border-t border-border">
+                <span className="text-text-muted text-xs">Total</span>
+                <span className="money font-semibold text-sm">
+                  ${stats.total_saved.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-text-muted text-sm">A excedente</span>
-              <span className="text-warning font-semibold">${stats.to_savings.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-text-muted text-sm">A inversión</span>
+                <span className="money text-primary font-semibold">${stats.to_investment.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted text-sm">A excedente</span>
+                <span className="money text-warning font-semibold">${stats.to_savings.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="bg-surface rounded-[14px] p-6 border border-border">
           <h3 className="font-semibold text-sm mb-3">Presupuesto diario</h3>
-          <p className="text-3xl font-bold text-primary">${stats.daily_budget.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
+          <p className="money text-3xl font-bold text-primary">${stats.daily_budget.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
           <p className="text-text-muted text-sm mt-1">{stats.days_in_month} días en el mes</p>
         </div>
       </div>
