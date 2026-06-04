@@ -84,6 +84,27 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response) => {
     const dailyBudget = await getDailyBudget(req.user!.id);
     const excedentBalance = await getExcedentBalance(req.user!.id, today);
 
+    // Month-level info
+    const todayDate = new Date();
+    const year = todayDate.getFullYear();
+    const month = todayDate.getMonth() + 1;
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    const fixedExpensesRow = await db('fixed_expenses')
+      .where({ user_id: req.user!.id, active: true })
+      .sum('amount as total')
+      .first();
+    const fixedTotal = Number(fixedExpensesRow?.total || 0);
+    const monthBudget = Math.max(0, Number(user?.monthly_income || 0) - fixedTotal);
+
+    const monthSpentRow = await db('daily_expenses')
+      .where({ user_id: req.user!.id })
+      .whereRaw('EXTRACT(MONTH FROM date) = ? AND EXTRACT(YEAR FROM date) = ?', [month, year])
+      .sum('amount as total')
+      .first();
+    const monthSpent = Number(monthSpentRow?.total || 0);
+    const monthRemaining = monthBudget - monthSpent;
+
     const remaining = dailyBudget - totalSpent;
     const overBudget = remaining < 0;
     const overAmount = overBudget ? Math.abs(remaining) : 0;
@@ -144,6 +165,11 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response) => {
       investment_percent: investmentPercent,
       investment_destination: investmentDestination,
       buckets_breakdown: bucketsBreakdown,
+      month_budget: monthBudget,
+      month_spent: monthSpent,
+      month_remaining: monthRemaining,
+      days_in_month: daysInMonth,
+      day_of_month: todayDate.getDate(),
       expenses,
     });
   } catch (error) {

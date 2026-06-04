@@ -38,6 +38,11 @@ interface TodaySummary {
   investment_percent: number;
   investment_destination: string;
   buckets_breakdown?: BucketBreakdown[];
+  month_budget?: number;
+  month_spent?: number;
+  month_remaining?: number;
+  days_in_month?: number;
+  day_of_month?: number;
   expenses: Array<{
     id: string;
     amount: number;
@@ -176,6 +181,39 @@ export default function Dashboard() {
       {/* Insights */}
       {insights.length > 0 && <InsightCards insights={insights} />}
 
+      {/* Key balances - excedente actual + restante del mes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+        <div className={`bg-surface rounded-2xl p-5 border ${(today?.excedent_balance ?? 0) < 0 ? 'border-danger/30' : 'border-warning/30'}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <PiggyBank className={`w-4 h-4 ${(today?.excedent_balance ?? 0) < 0 ? 'text-danger' : 'text-warning'}`} />
+            <p className="text-[11px] text-text-muted uppercase tracking-wide font-semibold">Excedente acumulado</p>
+          </div>
+          <p className={`money text-3xl font-bold ${(today?.excedent_balance ?? 0) < 0 ? 'text-danger' : 'text-warning'}`}>
+            ${(today?.excedent_balance ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+          </p>
+          <p className="text-[11px] text-text-muted mt-1">
+            {(today?.excedent_balance ?? 0) < 0
+              ? 'Estás en deuda con tu colchón'
+              : 'Tu colchón disponible para días malos'}
+          </p>
+        </div>
+
+        <div className={`bg-surface rounded-2xl p-5 border ${(today?.month_remaining ?? 0) < 0 ? 'border-danger/30' : 'border-secondary/30'}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <Wallet className={`w-4 h-4 ${(today?.month_remaining ?? 0) < 0 ? 'text-danger' : 'text-secondary'}`} />
+            <p className="text-[11px] text-text-muted uppercase tracking-wide font-semibold">Restante del mes</p>
+          </div>
+          <p className={`money text-3xl font-bold ${(today?.month_remaining ?? 0) < 0 ? 'text-danger' : 'text-secondary'}`}>
+            ${(today?.month_remaining ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+          </p>
+          <p className="text-[11px] text-text-muted mt-1">
+            {today?.day_of_month && today?.days_in_month
+              ? `Día ${today.day_of_month} de ${today.days_in_month} · ${today.days_in_month - today.day_of_month} ${today.days_in_month - today.day_of_month === 1 ? 'día' : 'días'} restantes`
+              : 'Disponible hasta fin de mes'}
+          </p>
+        </div>
+      </div>
+
       {/* Forecast */}
       <ForecastCard refreshKey={refreshKey} />
 
@@ -191,20 +229,20 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className={`bg-surface rounded-2xl p-4 border lift ${(today?.excedent_after_today ?? 0) < 0 ? 'border-danger/40' : 'border-warning/25'}`}>
+        <div className="bg-surface rounded-2xl p-4 border border-border lift">
           <div className="flex items-center gap-1.5 mb-1.5">
-            <PiggyBank className={`w-3.5 h-3.5 ${(today?.excedent_after_today ?? 0) < 0 ? 'text-danger' : 'text-warning'}`} />
-            <p className="text-[11px] text-text-muted">Excedente</p>
+            <PiggyBank className="w-3.5 h-3.5 text-warning" />
+            <p className="text-[11px] text-text-muted">Hoy al colchón</p>
           </div>
-          <p className={`money text-base md:text-lg font-bold truncate ${(today?.excedent_after_today ?? 0) < 0 ? 'text-danger' : 'text-warning'}`}>
-            ${(today?.excedent_after_today ?? today?.excedent_balance ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+          <p className="money text-base md:text-lg font-bold text-warning truncate">
+            ${(today?.to_excedent ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
           </p>
         </div>
 
-        <div className="bg-surface rounded-2xl p-4 border border-primary/25 lift">
+        <div className="bg-surface rounded-2xl p-4 border border-border lift">
           <div className="flex items-center gap-1.5 mb-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-primary" />
-            <p className="text-[11px] text-text-muted">A invertir</p>
+            <p className="text-[11px] text-text-muted">Hoy a invertir</p>
           </div>
           <p className="money text-base md:text-lg font-bold text-primary truncate">
             ${today?.to_investment.toLocaleString('es-AR', { maximumFractionDigits: 0 }) || '0'}
