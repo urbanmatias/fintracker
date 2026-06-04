@@ -11,6 +11,16 @@ import ForecastCard from '../components/ForecastCard';
 import { Settings as SettingsIcon, TrendingUp, Wallet, PiggyBank, ArrowRight, Trash2, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+interface BucketBreakdown {
+  bucket_id: string;
+  name: string;
+  type: 'investment' | 'excedent' | 'custom';
+  color: string;
+  percent: number;
+  description: string | null;
+  amount: number;
+}
+
 interface TodaySummary {
   date: string;
   daily_budget: number;
@@ -27,6 +37,7 @@ interface TodaySummary {
   savings_percent: number;
   investment_percent: number;
   investment_destination: string;
+  buckets_breakdown?: BucketBreakdown[];
   expenses: Array<{
     id: string;
     amount: number;
@@ -219,29 +230,66 @@ export default function Dashboard() {
       {today && today.remaining > 0 && (
         <div className="bg-surface rounded-2xl p-5 md:p-6 border border-border">
           <h3 className="font-semibold text-sm mb-4">Si no gastás más hoy</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="bg-primary/[0.06] rounded-xl p-4 border border-primary/20">
-              <p className="text-[11px] text-text-muted">Inversión · {today.investment_percent}%</p>
-              <p className="money text-lg font-bold text-primary mt-1">
-                ${today.to_investment.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-[10px] text-text-muted mt-1 truncate">{today.investment_destination}</p>
+
+          {today.buckets_breakdown && today.buckets_breakdown.length > 0 ? (
+            <>
+              <div className={`grid gap-3 ${
+                today.buckets_breakdown.length <= 2 ? 'grid-cols-1 md:grid-cols-2' :
+                today.buckets_breakdown.length === 3 ? 'grid-cols-1 md:grid-cols-3' :
+                'grid-cols-2 md:grid-cols-4'
+              }`}>
+                {today.buckets_breakdown.map((b) => (
+                  <div
+                    key={b.bucket_id}
+                    className="rounded-xl p-4 border"
+                    style={{
+                      backgroundColor: `${b.color}10`,
+                      borderColor: `${b.color}33`,
+                    }}
+                  >
+                    <p className="text-[11px] text-text-muted truncate">{b.name} · {b.percent}%</p>
+                    <p className="money text-lg font-bold mt-1" style={{ color: b.color }}>
+                      ${b.amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    </p>
+                    {b.description && (
+                      <p className="text-[10px] text-text-muted mt-1 truncate">{b.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-xs">
+                <span className="text-text-muted">Excedente acumulado al cierre del día</span>
+                <span className="money font-semibold text-secondary">
+                  ${today.excedent_after_today.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </>
+          ) : (
+            // Fallback when no buckets configured (legacy)
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="bg-primary/[0.06] rounded-xl p-4 border border-primary/20">
+                <p className="text-[11px] text-text-muted">Inversión · {today.investment_percent}%</p>
+                <p className="money text-lg font-bold text-primary mt-1">
+                  ${today.to_investment.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-[10px] text-text-muted mt-1 truncate">{today.investment_destination}</p>
+              </div>
+              <div className="bg-warning/[0.06] rounded-xl p-4 border border-warning/20">
+                <p className="text-[11px] text-text-muted">Excedente · {today.savings_percent}%</p>
+                <p className="money text-lg font-bold text-warning mt-1">
+                  ${today.to_excedent.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-[10px] text-text-muted mt-1">Colchón</p>
+              </div>
+              <div className="bg-secondary/[0.06] rounded-xl p-4 border border-secondary/20">
+                <p className="text-[11px] text-text-muted">Excedente total</p>
+                <p className="money text-lg font-bold text-secondary mt-1">
+                  ${today.excedent_after_today.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-[10px] text-text-muted mt-1">Después de hoy</p>
+              </div>
             </div>
-            <div className="bg-warning/[0.06] rounded-xl p-4 border border-warning/20">
-              <p className="text-[11px] text-text-muted">Excedente · {today.savings_percent}%</p>
-              <p className="money text-lg font-bold text-warning mt-1">
-                ${today.to_excedent.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-[10px] text-text-muted mt-1">Colchón</p>
-            </div>
-            <div className="bg-secondary/[0.06] rounded-xl p-4 border border-secondary/20">
-              <p className="text-[11px] text-text-muted">Excedente total</p>
-              <p className="money text-lg font-bold text-secondary mt-1">
-                ${today.excedent_after_today.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-[10px] text-text-muted mt-1">Después de hoy</p>
-            </div>
-          </div>
+          )}
         </div>
       )}
 

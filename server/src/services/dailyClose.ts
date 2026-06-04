@@ -1,5 +1,24 @@
 import db from '../database/connection';
 
+interface BucketRow {
+  id: string;
+  name: string;
+  type: 'investment' | 'excedent' | 'custom';
+  color: string;
+  percent: number;
+  description: string | null;
+}
+
+interface BucketBreakdown {
+  bucket_id: string;
+  name: string;
+  type: 'investment' | 'excedent' | 'custom';
+  color: string;
+  percent: number;
+  description: string | null;
+  amount: number;
+}
+
 /**
  * Auto-close all past unclosed days for a user.
  * For each day from the last closed day (or first expense day) up to yesterday,
@@ -17,7 +36,6 @@ export async function autoCloseDays(userId: string): Promise<number> {
     .orderBy('date', 'desc')
     .first();
 
-  // Find the first day with any activity (expense or registration)
   let startDate: string;
 
   if (lastClosed) {
@@ -25,7 +43,6 @@ export async function autoCloseDays(userId: string): Promise<number> {
     next.setUTCDate(next.getUTCDate() + 1);
     startDate = next.toISOString().split('T')[0];
   } else {
-    // Use first expense day or user creation day, whichever is later
     const firstExpense = await db('daily_expenses')
       .where({ user_id: userId })
       .orderBy('date', 'asc')
@@ -39,20 +56,29 @@ export async function autoCloseDays(userId: string): Promise<number> {
 
   if (startDate >= today) return 0;
 
-  const savingsPercent = Number(user.savings_percent) / 100;
-  const investmentPercent = Number(user.investment_percent) / 100;
+  // Load distribution buckets once
+  const bucketsRaw = await db('distribution_buckets')
+    .where({ user_id: userId })
+    .orderBy('sort_order');
+  const buckets: BucketRow[] = bucketsRaw.map((b) => ({
+    id: b.id,
+    name: b.name,
+    type: b.type,
+    color: b.color,
+    percent: Number(b.percent),
+    description: b.description,
+  }));
 
-  // Get current excedent balance
+  // Get current excedent balance from last close (or 0)
   let excedentBalance = lastClosed ? Number(lastClosed.excedent_balance) : 0;
 
   let closedCount = 0;
   const cursor = new Date(startDate);
-  const endCursor = new Date(today); // exclusive: don't close today
+  const endCursor = new Date(today);
 
   while (cursor < endCursor) {
     const dateStr = cursor.toISOString().split('T')[0];
 
-    // Calculate budget for that day (based on current month)
     const year = cursor.getUTCFullYear();
     const month = cursor.getUTCMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -65,7 +91,6 @@ export async function autoCloseDays(userId: string): Promise<number> {
     const dailyBudget =
       (Number(user.monthly_income) - Number(fixedExpenses?.total || 0)) / daysInMonth;
 
-    // Sum that day's expenses
     const dayExpenses = await db('daily_expenses')
       .where({ user_id: userId, date: dateStr });
     const totalSpent = dayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
@@ -73,16 +98,25 @@ export async function autoCloseDays(userId: string): Promise<number> {
     const surplus = dailyBudget - totalSpent;
     const overBudget = surplus < 0;
 
+    let breakdown: BucketBreakdown[] = [];
     let toInvestment = 0;
     let toExcedent = 0;
     let fromExcedent = 0;
 
     if (overBudget) {
-      // Spent more than budget, full overspend comes from excedent (can go negative)
       fromExcedent = Math.abs(surplus);
     } else {
-      toInvestment = surplus * investmentPercent;
-      toExcedent = surplus * savingsPercent;
+      breakdown = buckets.map((b) => ({
+        bucket_id: b.id,
+        name: b.name,
+        type: b.type,
+        color: b.color,
+        percent: b.percent,
+        description: b.description,
+        amount: surplus * (b.percent / 100),
+      }));
+      toInvestment = breakdown.filter((b) => b.type === 'investment').reduce((s, b) => s + b.amount, 0);
+      toExcedent = breakdown.filter((b) => b.type === 'excedent').reduce((s, b) => s + b.amount, 0);
     }
 
     excedentBalance = excedentBalance + toExcedent - fromExcedent;
@@ -98,6 +132,7 @@ export async function autoCloseDays(userId: string): Promise<number> {
         to_excedent: toExcedent,
         from_excedent: fromExcedent,
         excedent_balance: excedentBalance,
+        buckets_breakdown: JSON.stringify(breakdown),
       })
       .onConflict(['user_id', 'date'])
       .merge();

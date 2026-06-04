@@ -89,19 +89,43 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response) => {
     const overAmount = overBudget ? Math.abs(remaining) : 0;
     const savedToday = remaining > 0 ? remaining : 0;
 
-    // Distribution of savings
-    const savingsPercent = Number(user.savings_percent) / 100; // goes to excedent
-    const investmentPercent = Number(user.investment_percent) / 100; // goes to investment
+    // Load distribution buckets
+    const buckets = await db('distribution_buckets')
+      .where({ user_id: req.user!.id })
+      .orderBy('sort_order');
 
-    const toExcedent = savedToday * savingsPercent;
-    const toInvestment = savedToday * investmentPercent;
+    // Distribute savedToday across all buckets
+    const bucketsBreakdown = buckets.map((b) => ({
+      bucket_id: b.id,
+      name: b.name,
+      type: b.type,
+      color: b.color,
+      percent: Number(b.percent),
+      description: b.description,
+      amount: savedToday * (Number(b.percent) / 100),
+    }));
 
-    // If over budget, the full overspend comes from excedent (can go negative)
+    // Aggregate per type for backwards compatibility
+    const toInvestment = bucketsBreakdown
+      .filter((b) => b.type === 'investment')
+      .reduce((s, b) => s + b.amount, 0);
+    const toExcedent = bucketsBreakdown
+      .filter((b) => b.type === 'excedent')
+      .reduce((s, b) => s + b.amount, 0);
+
+    // If over budget, full overspend comes from excedent (can go negative)
     const fromExcedent = overBudget ? overAmount : 0;
     const currentExcedent = excedentBalance + toExcedent - fromExcedent;
 
-    // Effective available = daily budget + excedent balance (what you can actually spend)
     const effectiveAvailable = dailyBudget + excedentBalance;
+
+    // Legacy investment_destination = first investment bucket description
+    const investmentDestination =
+      bucketsBreakdown.find((b) => b.type === 'investment')?.description || user?.investment_destination || '';
+
+    // Legacy percentages
+    const investmentPercent = Number(user?.investment_percent || 0);
+    const savingsPercent = Number(user?.savings_percent || 0);
 
     res.json({
       date: today,
@@ -116,9 +140,10 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response) => {
       excedent_balance: excedentBalance,
       excedent_after_today: currentExcedent,
       effective_available: effectiveAvailable,
-      savings_percent: Number(user.savings_percent),
-      investment_percent: Number(user.investment_percent),
-      investment_destination: user.investment_destination,
+      savings_percent: savingsPercent,
+      investment_percent: investmentPercent,
+      investment_destination: investmentDestination,
+      buckets_breakdown: bucketsBreakdown,
       expenses,
     });
   } catch (error) {
