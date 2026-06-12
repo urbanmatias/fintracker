@@ -8,8 +8,9 @@ import AnimatedNumber from '../components/AnimatedNumber';
 import InsightCards, { type Insight } from '../components/InsightCard';
 import EmptyState from '../components/EmptyState';
 import ForecastCard from '../components/ForecastCard';
-import { Settings as SettingsIcon, TrendingUp, Wallet, PiggyBank, ArrowRight, Trash2, RefreshCw } from 'lucide-react';
+import { Settings as SettingsIcon, TrendingUp, Wallet, PiggyBank, ArrowRight, Trash2, RefreshCw, Pencil } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import AdjustmentModal from '../components/AdjustmentModal';
 
 interface BucketBreakdown {
   bucket_id: string;
@@ -60,6 +61,7 @@ export default function Dashboard() {
   const [today, setToday] = useState<TodaySummary | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adjustmentType, setAdjustmentType] = useState<'excedent' | 'month_remaining' | null>(null);
 
   const loadAll = async () => {
     try {
@@ -183,7 +185,15 @@ export default function Dashboard() {
 
       {/* Key balances - excedente actual + restante del mes */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-        <div className={`bg-surface rounded-2xl p-5 border ${(today?.excedent_balance ?? 0) < 0 ? 'border-danger/30' : 'border-warning/30'}`}>
+        <div className={`bg-surface rounded-2xl p-5 border relative ${(today?.excedent_balance ?? 0) < 0 ? 'border-danger/30' : 'border-warning/30'}`}>
+          <button
+            onClick={() => setAdjustmentType('excedent')}
+            className="absolute top-3 right-3 text-text-muted/40 hover:text-text w-7 h-7 flex items-center justify-center rounded-md hover:bg-border/50 transition-colors"
+            aria-label="Ajustar excedente"
+            title="Ajustar manualmente"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
           <div className="flex items-center gap-2 mb-2">
             <PiggyBank className={`w-4 h-4 ${(today?.excedent_balance ?? 0) < 0 ? 'text-danger' : 'text-warning'}`} />
             <p className="text-[11px] text-text-muted uppercase tracking-wide font-semibold">Excedente acumulado</p>
@@ -198,7 +208,15 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className={`bg-surface rounded-2xl p-5 border ${(today?.month_remaining ?? 0) < 0 ? 'border-danger/30' : 'border-secondary/30'}`}>
+        <div className={`bg-surface rounded-2xl p-5 border relative ${(today?.month_remaining ?? 0) < 0 ? 'border-danger/30' : 'border-secondary/30'}`}>
+          <button
+            onClick={() => setAdjustmentType('month_remaining')}
+            className="absolute top-3 right-3 text-text-muted/40 hover:text-text w-7 h-7 flex items-center justify-center rounded-md hover:bg-border/50 transition-colors"
+            aria-label="Ajustar restante del mes"
+            title="Ajustar manualmente"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
           <div className="flex items-center gap-2 mb-2">
             <Wallet className={`w-4 h-4 ${(today?.month_remaining ?? 0) < 0 ? 'text-danger' : 'text-secondary'}`} />
             <p className="text-[11px] text-text-muted uppercase tracking-wide font-semibold">Restante del mes</p>
@@ -419,6 +437,19 @@ export default function Dashboard() {
             description="Todavía no cargaste gastos hoy. Tocá el + para empezar."
           />
         </div>
+      )}
+
+      {/* Adjustment modal */}
+      {adjustmentType && today && (
+        <AdjustmentModal
+          type={adjustmentType}
+          currentValue={
+            adjustmentType === 'excedent'
+              ? (today.excedent_balance ?? 0)
+              : (today.month_remaining ?? 0)
+          }
+          onClose={() => setAdjustmentType(null)}
+        />
       )}
     </div>
   );

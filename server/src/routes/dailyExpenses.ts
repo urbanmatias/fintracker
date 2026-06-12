@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { AuthRequest, authenticate } from '../middleware/auth';
 import db from '../database/connection';
 import { autoCloseDays } from '../services/dailyClose';
+import { getExcedentDelta, getMonthRemainingDelta } from '../services/adjustments';
 
 const router = Router();
 
@@ -13,7 +14,9 @@ async function getExcedentBalance(userId: string, beforeDate: string): Promise<n
     .orderBy('date', 'desc')
     .first();
 
-  return result ? Number(result.excedent_balance) : 0;
+  const baseValue = result ? Number(result.excedent_balance) : 0;
+  const adjustment = await getExcedentDelta(userId);
+  return baseValue + adjustment;
 }
 
 // Helper: get daily budget for a user
@@ -103,7 +106,8 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response) => {
       .sum('amount as total')
       .first();
     const monthSpent = Number(monthSpentRow?.total || 0);
-    const monthRemaining = monthBudget - monthSpent;
+    const monthRemainingDelta = await getMonthRemainingDelta(req.user!.id, year, month);
+    const monthRemaining = monthBudget - monthSpent + monthRemainingDelta;
 
     const remaining = dailyBudget - totalSpent;
     const overBudget = remaining < 0;

@@ -21,6 +21,7 @@ import iolRoutes from './routes/iol';
 import newsRoutes from './routes/news';
 import apiTokensRoutes from './routes/apiTokens';
 import bucketsRoutes from './routes/buckets';
+import adjustmentsRoutes from './routes/adjustments';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -51,6 +52,7 @@ app.use('/api/iol', iolRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/api-tokens', apiTokensRoutes);
 app.use('/api/buckets', bucketsRoutes);
+app.use('/api/adjustments', adjustmentsRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {
