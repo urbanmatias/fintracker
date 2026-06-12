@@ -25,8 +25,10 @@ interface BucketBreakdown {
 interface TodaySummary {
   date: string;
   daily_budget: number;
+  daily_budget_adjusted?: number;
   total_spent: number;
   remaining: number;
+  remaining_adjusted?: number;
   over_budget: boolean;
   over_amount: number;
   to_investment: number;
@@ -44,6 +46,7 @@ interface TodaySummary {
   month_remaining?: number;
   days_in_month?: number;
   day_of_month?: number;
+  days_remaining?: number;
   expenses: Array<{
     id: string;
     amount: number;
@@ -127,7 +130,9 @@ export default function Dashboard() {
   const budgetUsedPercent = safeBudget > 0 ? (safeSpent / safeBudget) * 100 : 0;
   const greeting = greetings[Math.floor(Math.random() * greetings.length)];
   const remaining = today?.remaining || 0;
+  const remainingAdjusted = today?.remaining_adjusted ?? remaining;
   const isOverBudget = remaining < 0;
+  const isOverAdjusted = remainingAdjusted < 0;
 
   return (
     <div className="space-y-5 md:space-y-6 fade-in-stagger">
@@ -152,18 +157,31 @@ export default function Dashboard() {
           <p className="text-xs md:text-sm text-text-muted">
             {greeting}, <span className="text-text font-medium">{user?.name?.split(' ')[0]}</span>
           </p>
-          <p className="text-[11px] md:text-xs text-text-muted mt-1">Te quedan para hoy</p>
+
+          {/* Adjusted (real) — primary */}
+          <p className="text-[11px] md:text-xs text-text-muted mt-1">Te quedan para hoy (real)</p>
 
           <div className="hero-glow my-3 md:my-4">
-            <h1 className={`text-5xl md:text-7xl font-bold count-up money ${isOverBudget ? 'text-danger' : 'gradient-text'}`}>
-              <AnimatedNumber value={remaining} duration={800} decimals={0} />
+            <h1 className={`text-5xl md:text-7xl font-bold count-up money ${isOverAdjusted ? 'text-danger' : 'gradient-text'}`}>
+              <AnimatedNumber value={remainingAdjusted} duration={800} decimals={0} />
             </h1>
           </div>
 
-          {/* Mini progress */}
+          {/* Theoretical (regular) — secondary */}
+          <div className="flex items-center gap-2 flex-wrap mb-3 md:mb-4">
+            <span className="text-[11px] md:text-xs text-text-muted">Teórico del día:</span>
+            <span className={`money text-sm font-semibold ${isOverBudget ? 'text-danger' : 'text-text'}`}>
+              ${remaining.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+            </span>
+            <span className="text-[10px] text-text-muted/70">
+              · ${(today?.daily_budget ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })} de presupuesto
+            </span>
+          </div>
+
+          {/* Mini progress (uses theoretical budget) */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-[11px] md:text-xs text-text-muted">
-              <span>de ${today?.daily_budget.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
+              <span>{today?.days_remaining ? `${today.days_remaining} ${today.days_remaining === 1 ? 'día' : 'días'} restantes en el mes` : ''}</span>
               <span className={budgetUsedPercent > 100 ? 'text-danger font-semibold' : 'font-semibold'}>
                 {budgetUsedPercent.toFixed(0)}%
               </span>

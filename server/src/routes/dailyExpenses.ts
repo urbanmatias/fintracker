@@ -109,6 +109,14 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response) => {
     const monthRemainingDelta = await getMonthRemainingDelta(req.user!.id, year, month);
     const monthRemaining = monthBudget - monthSpent + monthRemainingDelta;
 
+    // Adjusted daily budget: distribute what's actually left across remaining days (inclusive of today)
+    const dayOfMonth = todayDate.getDate();
+    const daysRemainingIncl = Math.max(1, daysInMonth - dayOfMonth + 1);
+    // Money available to spend from today onwards = monthRemaining + spentToday (since monthRemaining already subtracted it)
+    const moneyAvailableFromToday = monthRemaining + totalSpent;
+    const dailyBudgetAdjusted = moneyAvailableFromToday / daysRemainingIncl;
+    const remainingAdjusted = dailyBudgetAdjusted - totalSpent;
+
     const remaining = dailyBudget - totalSpent;
     const overBudget = remaining < 0;
     const overAmount = overBudget ? Math.abs(remaining) : 0;
@@ -155,8 +163,10 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response) => {
     res.json({
       date: today,
       daily_budget: dailyBudget,
+      daily_budget_adjusted: dailyBudgetAdjusted,
       total_spent: totalSpent,
       remaining,
+      remaining_adjusted: remainingAdjusted,
       over_budget: overBudget,
       over_amount: overAmount,
       to_investment: toInvestment,
@@ -173,7 +183,8 @@ router.get('/today', authenticate, async (req: AuthRequest, res: Response) => {
       month_spent: monthSpent,
       month_remaining: monthRemaining,
       days_in_month: daysInMonth,
-      day_of_month: todayDate.getDate(),
+      day_of_month: dayOfMonth,
+      days_remaining: daysRemainingIncl,
       expenses,
     });
   } catch (error) {
